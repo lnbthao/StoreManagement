@@ -1,0 +1,2 @@
+C:\Users\Sang\Downloads\Store\storemanagement.client\obj\Debug\storemanagement.client.esproj.CoreCompileInputs.cache
+D:\Store\storemanagement.client\obj\Debug\storemanagement.client.esproj.CoreCompileInputs.cache

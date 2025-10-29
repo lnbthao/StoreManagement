@@ -1,0 +1,27 @@
+:root {
+  font-family: "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition-duration: 150ms;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+main#admin {
+  grid-template-columns: 200px 1fr;
+}
+
+.invalid-feedback {
+  width: auto!important;
+}

@@ -1,0 +1,25 @@
+main#login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100dvh;
+  /*background-color: var(--bs-primary-bg-subtle);*/
+  background: linear-gradient(135deg, #153f80, #021c41);
+
+  form {
+    background: linear-gradient(135deg, white, rgb(235,235,235));
+    padding: 3rem;
+    border-radius: 10px;
+    min-width: 500px;
+    
+    input[type="submit"] {
+      background-color: #153f80;
+      color: white;
+      font-weight: 500;
+
+      &:hover {
+        background-color: #1d57af;
+      }
+    }
+  }
+}

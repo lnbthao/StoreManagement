@@ -1,0 +1,64 @@
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css");
+
+header {
+  background-image: url("/images/pattern_h.png");
+  background-size: cover;
+  background-position: center;
+
+  nav {
+    height: calc(100dvh - 84px);
+
+    button {
+      border-radius: 0!important;
+      color: white!important;
+
+      &:hover {
+        background-color: rgb(90,90,90,0.8)!important;
+      }
+
+      &:focus, &:active {
+        border: 1px solid transparent !important;
+      }
+    }
+
+    #dashboard-btn i {
+      color: #fb2c36;
+    }
+
+    #supplier-btn i{
+      color: #ff8904;
+    }
+
+    #category-btn i {
+      color: #ffb900;
+    }
+
+    #product-btn i {
+      color: #05df72;
+    }
+
+    #promotion-btn i {
+      color: #00d5be;
+    }
+
+    #order-btn i {
+      color: #00bcff;
+    }
+
+    #user-btn i {
+      color: #7c86ff;
+    }
+
+    #customer-btn i {
+      color: #fb64b6;
+    }
+  }
+
+  #log-out {
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
