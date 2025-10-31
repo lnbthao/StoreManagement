@@ -6,6 +6,9 @@
 *.sln
 *.sw?
 *.local
+*.tmp
+*.bak
+*.userprefs
 
 # === Logs ===
 logs
@@ -37,12 +40,16 @@ StoreManagement.Server/**/*.userosscache
 StoreManagement.Server/**/*.sln.docstates
 StoreManagement.Server/wwwroot/
 StoreManagement.Server/.vs/
+StoreManagement.Server/publish/
 
 # === IDE / Editor ===
 .vscode/*
 !.vscode/extensions.json
 .idea/
-
+# Visual Studio
+.vs/
+bin/
+obj/
 # === Environment files ===
 .env
 .env.*
