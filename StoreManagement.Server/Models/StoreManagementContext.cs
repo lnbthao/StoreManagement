@@ -85,6 +85,7 @@ public partial class StoreManagementContext : DbContext
 
             entity.HasIndex(e => e.ProductId, "product_id");
             
+            entity.Property(e => e.InventoryId).HasColumnName("inventory_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.Quantity)
                 .HasDefaultValueSql("'0'")

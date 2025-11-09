@@ -109,20 +109,56 @@ export default function Login() {
   function handleLogin() {
     if (!validateAll()) return;
 
-    /*
-      TO DO: Fetch login bên admin và trả về StatusCode
-      - 200: Đăng nhập thành công:
-      - 400: Trả về kèm lỗi.
-      StatusCode(400, new { key: val });
-      Rồi sau đó setErrors cái lỗi.
-    */
-
-    /*
-      Code tạm: Đăng nhập thành công
-      Biến tạm: role.
-    */
-    alert("Đăng nhập thành công!");
-    const role = "admin"; // Tạm thời: Sửa role thành staff để vô thanh toán
-    location.href = (`/${role}`);
+    // Gọi API đăng nhập
+    axios.post("/api/user/login", {
+      username: user.id,
+      password: user.password
+    })
+    .then(response => {
+      const data = response.data;
+      
+      // Lưu thông tin user vào localStorage
+      const userData = {
+        userId: data.userId,
+        username: data.username,
+        fullName: data.fullName,
+        role: data.role,
+        loginTime: new Date().toISOString()
+      };
+      
+      localStorage.setItem("currentUser", JSON.stringify(userData));
+      
+      alert(data.message || "Đăng nhập thành công!");
+      
+      // Chuyển hướng theo role
+      if (data.role === "admin") {
+        location.href = "/admin";
+      } else if (data.role === "staff") {
+        location.href = "/staff";
+      } else {
+        location.href = "/admin"; // Mặc định
+      }
+    })
+    .catch(error => {
+      console.error("Login error:", error);
+      
+      if (error.response) {
+        // Server trả về lỗi
+        const message = error.response.data?.message || "Đăng nhập thất bại!";
+        alert(message);
+        
+        if (error.response.status === 401) {
+          // Unauthorized - sai username hoặc password
+          if (message.includes("không tồn tại")) {
+            setErrors(e => ({ ...e, id: message }));
+          } else if (message.includes("không đúng")) {
+            setErrors(e => ({ ...e, password: message }));
+          }
+        }
+      } else {
+        // Lỗi network hoặc server không phản hồi
+        alert("Không thể kết nối đến server. Vui lòng kiểm tra lại!");
+      }
+    });
   }
 }
