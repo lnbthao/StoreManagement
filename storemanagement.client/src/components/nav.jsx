@@ -15,6 +15,18 @@ const navList = [
 const SideNav = () => {
   const navTo = useNavigate();
   const pathname = useLocation().pathname;
+  
+  // Lấy thông tin user từ localStorage
+  const getCurrentUser = () => {
+    try {
+      const userStr = localStorage.getItem("currentUser");
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      return null;
+    }
+  };
+  
+  const currentUser = getCurrentUser();
 
   return (
     <header className="bg-dark vh-100">
@@ -43,16 +55,18 @@ const SideNav = () => {
         />
 
         <div>
-          <p className="mb-1 fw-bold">Admin</p>
-          <a id="log-out" onClick={handleLogout}>Đăng xuất</a>
+          <p className="mb-1 fw-bold">{currentUser?.fullName || "Admin"}</p>
+          <a id="log-out" onClick={handleLogout} style={{ cursor: "pointer" }}>Đăng xuất</a>
         </div>
       </div>
     </header>
   );
 
   function handleLogout() {
-    // TO DO: Đăng xuất (xóa cookie hoặc session)
-
+    // Xóa thông tin user khỏi localStorage
+    localStorage.removeItem("currentUser");
+    
+    alert("Đã đăng xuất!");
     navTo("/");
   }
 };

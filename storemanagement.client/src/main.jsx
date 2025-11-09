@@ -28,6 +28,7 @@ import AddUpProduct from "./product/AddUpProduct";
 import PromotionManagement from "./promotion/PromotionManagement";
 import AddUpPromotion from "./promotion/AddUpPromotion";
 import OrderManagement from "./order/OrderManagement";
+import AddOrder from "./order/AddOrder";
 import UserManagement from "./user/UserManagement";
 import AddUpUser from "./user/AddUpUser";
 import CustomerManagement from "./customer/CustomerManagement";
@@ -73,6 +74,7 @@ function AppRoutes() {
 
                 <Route path="order">
                   <Route index element={<OrderManagement />} />
+                  <Route path="add" element={<AddOrder />} />
                 </Route>
 
                 <Route path="user">

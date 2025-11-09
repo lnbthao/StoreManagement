@@ -14,9 +14,11 @@ export default function OrderViewModal({ open, order, onClose }) {
 
   const StatusBadge = useMemo(() => {
     const s = String(o.status || "").toLowerCase();
-    const map = { pending: "warning", paid: "success", canceled: "danger" };
-    const color = map[s] || "secondary";
-    return <span className={`badge bg-${color}`}>{o.status}</span>;
+    const colorMap = { pending: "warning", paid: "success", canceled: "danger" };
+    const textMap = { pending: "Chờ xác nhận", paid: "Đã thanh toán", canceled: "Đã hủy" };
+    const color = colorMap[s] || "secondary";
+    const text = textMap[s] || o.status;
+    return <span className={`badge bg-${color}`}>{text}</span>;
   }, [o.status]);
 
   const stop = (e) => e.stopPropagation();
@@ -46,17 +48,19 @@ export default function OrderViewModal({ open, order, onClose }) {
                 <div className="col-md-3">
                   <small className="text-muted d-block">Khách hàng</small>
                   <div className="fw-semibold">
-                    {o.customer_id ?? o.customerId}
+                    {o.customer?.name || o.customer_id || o.customerId || "-"}
                   </div>
                 </div>
                 <div className="col-md-3">
                   <small className="text-muted d-block">Nhân viên</small>
-                  <div className="fw-semibold">{o.user_id ?? o.userId}</div>
+                  <div className="fw-semibold">
+                    {o.user?.name || o.user_id || o.userId || "-"}
+                  </div>
                 </div>
                 <div className="col-md-3">
-                  <small className="text-muted d-block">Mã KM</small>
+                  <small className="text-muted d-block">Mã khuyến mãi</small>
                   <div className="fw-semibold">
-                    {o.promo_id ?? o.promoId ?? "-"}
+                    {o.promo?.name || o.promo_id || o.promoId || "-"}
                   </div>
                 </div>
                 <div className="col-md-3">
@@ -70,15 +74,15 @@ export default function OrderViewModal({ open, order, onClose }) {
                   <div className="fw-semibold">{StatusBadge}</div>
                 </div>
                 <div className="col-md-3">
-                  <small className="text-muted d-block">Tổng tiền</small>
-                  <div className="fw-semibold">
-                    {fmtMoney(o.total_amount ?? o.totalAmount)}
-                  </div>
-                </div>
-                <div className="col-md-3">
                   <small className="text-muted d-block">Giảm giá</small>
                   <div className="fw-semibold">
                     {fmtMoney(o.discount_amount ?? o.discountAmount)}
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <small className="text-muted d-block">Tổng tiền</small>
+                  <div className="fw-semibold text-primary fs-5">
+                    {fmtMoney(o.total_amount ?? o.totalAmount)}
                   </div>
                 </div>
               </div>
@@ -91,39 +95,39 @@ export default function OrderViewModal({ open, order, onClose }) {
                   <h6 className="mb-0">Sản phẩm trong đơn</h6>
                 </div>
 
-                {/* Bảng sản phẩm – hiện để trống (placeholder).
-                    Sau này bạn truyền props: items = [{productId, name, qty, price, subtotal}, ...] */}
                 <table className="table table-sm table-bordered mb-0">
-                  <thead>
+                  <thead className="table-light">
                     <tr className="text-center">
                       <th style={{ width: 90 }}>Mã SP</th>
                       <th>Tên sản phẩm</th>
-                      <th style={{ width: 120 }}>Số lượng</th>
-                      <th style={{ width: 160 }}>Đơn giá</th>
-                      <th style={{ width: 160 }}>Thành tiền</th>
+                      <th style={{ width: 100 }}>Số lượng</th>
+                      <th style={{ width: 140 }}>Đơn giá</th>
+                      <th style={{ width: 140 }}>Thành tiền</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* TODO: map items ở đây.
-                        Ví dụ:
-                        items?.map((it) => (
-                          <tr key={it.productId}>
-                            <td className="text-center">{it.productId}</td>
-                            <td>{it.name}</td>
-                            <td className="text-end">{it.qty}</td>
-                            <td className="text-end">{fmtMoney(it.price)}</td>
-                            <td className="text-end">{fmtMoney(it.subtotal)}</td>
-                          </tr>
-                        ))
-                    */}
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="text-center text-muted fst-italic"
-                      >
-                        Chưa có dữ liệu sản phẩm — thêm sau.
-                      </td>
-                    </tr>
+                    {!o.items || o.items.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="text-center text-muted fst-italic"
+                        >
+                          Không có sản phẩm trong đơn hàng
+                        </td>
+                      </tr>
+                    ) : (
+                      o.items.map((item) => (
+                        <tr key={item.orderItemId}>
+                          <td className="text-center">{item.productId}</td>
+                          <td>{item.productName || "-"}</td>
+                          <td className="text-center">{item.quantity}</td>
+                          <td className="text-end">{fmtMoney(item.price)}</td>
+                          <td className="text-end">
+                            <strong>{fmtMoney(item.subtotal)}</strong>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
