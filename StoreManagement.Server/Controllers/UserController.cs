@@ -1,184 +1,174 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using BCrypt.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using StoreManagement.Server.Models;
 
-namespace StoreManagement.Server.Controllers
+namespace StoreManagement.Server.Controllers;
+
+[ApiController]
+[Route("/api/[controller]")]
+public class UserController : Controller
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class UserController : ControllerBase
+    private readonly StoreManagementContext _db;
+    private readonly IConfiguration _config;
+
+    public UserController(StoreManagementContext db, IConfiguration config)
     {
-        private readonly StoreManagementContext _context;
+        _db = db;
+        _config = config;
+    }
 
-        public UserController(StoreManagementContext context)
-        {
-            _context = context;
-        }
+    public record LoginRequest(string Username, string Password);
 
-        // POST: api/User/login
-        [HttpPost("login")]
-        public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            {
-                return BadRequest(new { message = "Username và password không được để trống!" });
-            }
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest(new { message = "Thiếu thông tin đăng nhập" });
 
-            // Tìm user theo username
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == request.Username);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+        if (user is null || !user.IsActive)
+            return Unauthorized(new { message = "Tài khoản không tồn tại hoặc bị khóa" });
 
-            if (user == null)
-            {
-                return Unauthorized(new { message = "Tên đăng nhập không tồn tại!" });
-            }
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
+            return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
 
-            // Kiểm tra password (trong thực tế nên dùng hash password)
-            // TODO: Implement password hashing (BCrypt, Argon2, etc.)
-            if (user.Password != request.Password)
-            {
-                return Unauthorized(new { message = "Mật khẩu không đúng!" });
-            }
+        var token = GenerateJwtToken(user);
+        return Ok(new { token, user = new { user.UserId, user.Username, user.FullName, user.Role } });
+    }
 
-            // Trả về thông tin user (không bao gồm password)
-            var response = new LoginResponse
-            {
-                UserId = user.UserId,
-                Username = user.Username,
-                FullName = user.FullName ?? "Unknown User",
-                Role = user.Role ?? "user",
-                Message = "Đăng nhập thành công!"
-            };
-
-            return Ok(response);
-        }
-
-        // GET: api/User
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
-        {
-            var users = await _context.Users.ToListAsync();
+    [HttpGet]
+    // [Authorize]
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] string? name, 
+        [FromQuery] string? role,
+        [FromQuery] DateTime? createdFrom,
+        [FromQuery] DateTime? createdTo,
+        [FromQuery] bool includeInactive = false)
+    {
+        var query = _db.Users.AsQueryable();
+        
+        if (!includeInactive)
+            query = query.Where(u => u.IsActive);
             
-            // Không trả về password
-            var safeUsers = users.Select(u => new
+        if (!string.IsNullOrWhiteSpace(name))
+        {
+            query = query.Where(u => EF.Functions.Like(u.Username, $"%{name}%") || EF.Functions.Like(u.FullName, $"%{name}%"));
+        }
+        
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            query = query.Where(u => u.Role == role);
+        }
+        
+        if (createdFrom.HasValue)
+        {
+            query = query.Where(u => u.CreatedAt >= createdFrom.Value);
+        }
+        
+        if (createdTo.HasValue)
+        {
+            var endDate = createdTo.Value.Date.AddDays(1);
+            query = query.Where(u => u.CreatedAt < endDate);
+        }
+        
+        var list = await query
+            .Select(u => new
             {
                 u.UserId,
                 u.Username,
                 u.FullName,
                 u.Role,
-                u.CreatedAt
-            });
-            
-            return Ok(safeUsers);
-        }
+                u.CreatedAt,
+                u.IsActive
+            })
+            .ToListAsync();
 
-        // GET: api/User/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            // Không trả về password
-            return Ok(new
-            {
-                user.UserId,
-                user.Username,
-                user.FullName,
-                user.Role,
-                user.CreatedAt
-            });
-        }
-
-        // POST: api/User
-        [HttpPost]
-        public async Task<ActionResult<User>> CreateUser(User user)
-        {
-            // TODO: Hash password trước khi lưu
-            user.CreatedAt = DateTime.Now;
-            
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetUser), new { id = user.UserId }, new
-            {
-                user.UserId,
-                user.Username,
-                user.FullName,
-                user.Role,
-                user.CreatedAt
-            });
-        }
-
-        // PUT: api/User/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, User user)
-        {
-            if (id != user.UserId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // DELETE: api/User/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool UserExists(int id)
-        {
-            return _context.Users.Any(e => e.UserId == id);
-        }
+        return Ok(list);
     }
 
-    // DTOs for Login
-    public class LoginRequest
+    [HttpGet("{id}")]
+    // [Authorize]
+    public async Task<IActionResult> GetUserById(int id)
     {
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
+        var u = await _db.Users.FirstOrDefaultAsync(x => x.UserId == id);
+        if (u is null) return NotFound();
+        return Ok(new { u.UserId, u.Username, u.FullName, u.Role, u.CreatedAt, u.IsActive });
     }
 
-    public class LoginResponse
+    [HttpPost]
+    // [Authorize]
+    public async Task<IActionResult> CreateUser([FromBody] User u)
     {
-        public int UserId { get; set; }
-        public string Username { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public string Role { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
+        if (string.IsNullOrWhiteSpace(u.Username) || string.IsNullOrWhiteSpace(u.Password))
+            return BadRequest(new { message = "Thiếu username hoặc password" });
+
+        if (await _db.Users.AnyAsync(x => x.Username == u.Username))
+            return Conflict(new { message = "Username đã tồn tại" });
+
+        u.Password = BCrypt.Net.BCrypt.HashPassword(u.Password);
+        u.IsActive = true;
+        _db.Users.Add(u);
+        return await _db.SaveChangesAsync() > 0 ? StatusCode(201) : StatusCode(400);
+    }
+
+    [HttpPut("{id}")]
+    // [Authorize]
+    public async Task<IActionResult> UpdateUser([FromBody] User u, int id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.UserId == id);
+        if (user is null) return NotFound();
+
+        user.FullName = u.FullName;
+        user.Role = u.Role;
+        if (!string.IsNullOrWhiteSpace(u.Password))
+        {
+            user.Password = BCrypt.Net.BCrypt.HashPassword(u.Password);
+        }
+
+        _db.Users.Update(user);
+        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+    }
+
+    [HttpDelete("{id}")]
+    // [Authorize]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+
+        user.IsActive = !user.IsActive;
+        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+    }
+
+    private string GenerateJwtToken(User user)
+    {
+        var jwtKey = _config["Jwt:Key"] ?? "dev-secret-please-change";
+        var issuer = _config["Jwt:Issuer"] ?? "StoreManagement";
+        var audience = _config["Jwt:Audience"] ?? "StoreManagementClients";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Username),
+            new Claim("uid", user.UserId.ToString()),
+            new Claim(ClaimTypes.Role, user.Role ?? "staff")
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: DateTime.UtcNow.AddHours(4),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

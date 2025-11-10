@@ -68,14 +68,8 @@ export default function AddUpCustomer({ status = false }) {
 
   async function fetchData(id) {
     try {
-      // const { data } = await axios.get(`/api/customer/${id}`);
-      // setCustomer({ name: data.name, phone: data.phone, email: data.email, address: data.address });
-      setCustomer({
-        name: "Trần Thị Thu",
-        phone: "0111222333",
-        email: "tranthu0711@gmail.com",
-        address: "Bình Phước",
-      });
+      const { data } = await axios.get(`/api/customer/${id}`);
+      setCustomer({ name: data.name, phone: data.phone, email: data.email, address: data.address });
     } catch (e) {
       console.error(e);
       alert("Không tải được dữ liệu khách hàng.");
@@ -96,36 +90,32 @@ export default function AddUpCustomer({ status = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateAll()) return;
-
-    alert(
-      (status ? "Cập nhật -----" + id : "Thêm -----") +
-        JSON.stringify(customer, null, 2)
-    );
-    // try {
-    //   setSubmitting(true);
-    //   let res;
-    //   if (status && id) {
-    //     res = await axios.put(`/api/customer/${id}`, customer, {
-    //       headers: { "Content-Type": "application/json" },
-    //     });
-    //   } else {
-    //     res = await axios.post(`/api/customer`, customer, {
-    //       headers: { "Content-Type": "application/json" },
-    //     });
-    //   }
-    //   if (res.status === 200 || res.status === 201) {
-    //     alert(`${status ? "Cập nhật" : "Thêm"} khách hàng thành công!`);
-    //     navTo("/admin/customer", { replace: true });
-    //   } else {
-    //     alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
-    //     console.error(res);
-    //   }
-    // } catch (err) {
-    //   alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
-    //   console.error(err);
-    // } finally {
-    //   setSubmitting(false);
-    // }
+    
+    try {
+      setSubmitting(true);
+      let res;
+      if (status && id) {
+        res = await axios.put(`/api/customer/${id}`, customer, {
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        res = await axios.post(`/api/customer`, customer, {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (res.status === 200 || res.status === 201) {
+        alert(`${status ? "Cập nhật" : "Thêm"} khách hàng thành công!`);
+        navTo("/admin/customer", { replace: true });
+      } else {
+        alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
+        console.error(res);
+      }
+    } catch (err) {
+      alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return null;

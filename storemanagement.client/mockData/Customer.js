@@ -1,7 +1,7 @@
 export const MOCK_CUSTOMERS = [
   {
     customerId: 1,
-    customerName: "Khách hàng 1",
+    name: "Khách hàng 1",
     phone: "0909000001",
     email: "kh1@mail.com",
     address: "Địa chỉ 1",
@@ -9,7 +9,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 2,
-    customerName: "Khách hàng 2",
+    name: "Khách hàng 2",
     phone: "0909000002",
     email: "kh2@mail.com",
     address: "Địa chỉ 2",
@@ -17,7 +17,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 3,
-    customerName: "Khách hàng 3",
+    name: "Khách hàng 3",
     phone: "0909000003",
     email: "kh3@mail.com",
     address: "Địa chỉ 3",
@@ -25,7 +25,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 4,
-    customerName: "Khách hàng 4",
+    name: "Khách hàng 4",
     phone: "0909000004",
     email: "kh4@mail.com",
     address: "Địa chỉ 4",
@@ -33,7 +33,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 5,
-    customerName: "Khách hàng 5",
+    name: "Khách hàng 5",
     phone: "0909000005",
     email: "kh5@mail.com",
     address: "Địa chỉ 5",
@@ -41,7 +41,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 6,
-    customerName: "Khách hàng 6",
+    name: "Khách hàng 6",
     phone: "0909000006",
     email: "kh6@mail.com",
     address: "Địa chỉ 6",
@@ -49,7 +49,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 7,
-    customerName: "Khách hàng 7",
+    name: "Khách hàng 7",
     phone: "0909000007",
     email: "kh7@mail.com",
     address: "Địa chỉ 7",
@@ -57,7 +57,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 8,
-    customerName: "Khách hàng 8",
+    name: "Khách hàng 8",
     phone: "0909000008",
     email: "kh8@mail.com",
     address: "Địa chỉ 8",
@@ -65,7 +65,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 9,
-    customerName: "Khách hàng 9",
+    name: "Khách hàng 9",
     phone: "0909000009",
     email: "kh9@mail.com",
     address: "Địa chỉ 9",
@@ -73,7 +73,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 10,
-    customerName: "Khách hàng 10",
+    name: "Khách hàng 10",
     phone: "0909000010",
     email: "kh10@mail.com",
     address: "Địa chỉ 10",
@@ -81,7 +81,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 11,
-    customerName: "Khách hàng 11",
+    name: "Khách hàng 11",
     phone: "0909000011",
     email: "kh11@mail.com",
     address: "Địa chỉ 11",
@@ -89,7 +89,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 12,
-    customerName: "Khách hàng 12",
+    name: "Khách hàng 12",
     phone: "0909000012",
     email: "kh12@mail.com",
     address: "Địa chỉ 12",
@@ -97,7 +97,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 13,
-    customerName: "Khách hàng 13",
+    name: "Khách hàng 13",
     phone: "0909000013",
     email: "kh13@mail.com",
     address: "Địa chỉ 13",
@@ -105,7 +105,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 14,
-    customerName: "Khách hàng 14",
+    name: "Khách hàng 14",
     phone: "0909000014",
     email: "kh14@mail.com",
     address: "Địa chỉ 14",
@@ -113,7 +113,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 15,
-    customerName: "Khách hàng 15",
+    name: "Khách hàng 15",
     phone: "0909000015",
     email: "kh15@mail.com",
     address: "Địa chỉ 15",
@@ -121,7 +121,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 16,
-    customerName: "Khách hàng 16",
+    name: "Khách hàng 16",
     phone: "0909000016",
     email: "kh16@mail.com",
     address: "Địa chỉ 16",
@@ -129,7 +129,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 17,
-    customerName: "Khách hàng 17",
+    name: "Khách hàng 17",
     phone: "0909000017",
     email: "kh17@mail.com",
     address: "Địa chỉ 17",
@@ -137,7 +137,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 18,
-    customerName: "Khách hàng 18",
+    name: "Khách hàng 18",
     phone: "0909000018",
     email: "kh18@mail.com",
     address: "Địa chỉ 18",
@@ -145,7 +145,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 19,
-    customerName: "Khách hàng 19",
+    name: "Khách hàng 19",
     phone: "0909000019",
     email: "kh19@mail.com",
     address: "Địa chỉ 19",
@@ -153,7 +153,7 @@ export const MOCK_CUSTOMERS = [
   },
   {
     customerId: 20,
-    customerName: "Khách hàng 20",
+    name: "Khách hàng 20",
     phone: "0909000020",
     email: "kh20@mail.com",
     address: "Địa chỉ 20",

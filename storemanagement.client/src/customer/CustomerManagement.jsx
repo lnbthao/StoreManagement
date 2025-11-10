@@ -1,8 +1,7 @@
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
-import { Eye, Funnel, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
+import { useEffect, useState } from "react";
+import { Eye, Funnel, PencilSquare, PlusCircleFill, Trash3, ArrowClockwise } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import { MOCK_CUSTOMERS } from "../../mockData/Customer";
 import CustomerViewModal from "./CustomerViewModal";
 import CustomerFilterModal from "./CustomerFilterModal";
 import { splitPhoneNumber } from "../util";
@@ -15,17 +14,65 @@ export default function CustomerManagement() {
   const [openView, setOpenView] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [openFilter, setOpenFilter] = useState(false);
-
-  const loadFromApi = async (q = "") => {
-    const url = `/api/customer`;
-    const res = await axios.get(url);
-    return res.data;
+  const [currentFilters, setCurrentFilters] = useState({});
+  
+  const loadFromApi = async (q = "", filters = {}) => {
+    const params = {};
+    const name = (q || "").trim();
+    if (name) params.name = name;
+    
+    if (filters.hasPhone !== '') params.hasPhone = filters.hasPhone;
+    if (filters.hasEmail !== '') params.hasEmail = filters.hasEmail;
+    if (filters.hasAddress !== '') params.hasAddress = filters.hasAddress;
+    
+    if (filters.status === '' || filters.status === 'inactive') {
+      params.includeInactive = true;
+    } else {
+      params.includeInactive = false;
+    }
+    
+    if (filters.createdFrom) params.createdFrom = filters.createdFrom;
+    if (filters.createdTo) params.createdTo = filters.createdTo;
+    
+    const res = await axios.get("/api/customer", { params });
+    let data = res.data;
+    if (filters.status === 'inactive') {
+      data = data.filter(c => !c.isActive);
+    }
+    
+    return data;
   };
 
   const handleSearch = (value) => {
     setSearch(value);
-    // TODO: gọi hàm loadFromApi để tiến hành tìm kiếm
   };
+
+  const handleFilter = (filters) => {
+    setCurrentFilters(filters);
+    loadFromApi(search, filters).then((data) => setCustomerList(data));
+  };
+
+  const handleClearFilter = () => {
+    setCurrentFilters({});
+    loadFromApi(search, {}).then((data) => setCustomerList(data));
+  };
+
+  const hasActiveFilters = Object.values(currentFilters).some(value => value !== '' && value !== undefined && value !== null);
+
+  // Debouncing cho search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (search !== undefined) {
+        loadFromApi(search, currentFilters)
+          .then(data => setCustomerList(data))
+          .catch(err => {
+            console.log(err);
+          });
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [search, currentFilters]);
 
   useEffect(() => {
     (async () => {
@@ -33,8 +80,9 @@ export default function CustomerManagement() {
       try {
         const data = await loadFromApi();
         setCustomerList(data);
-      } catch {
-        setCustomerList(MOCK_CUSTOMERS);
+      } catch(err) {
+        console.log(err);
+        alert("Lấy danh sách khách hàng thất bại!");
       } finally {
         setLoading(false);
       }
@@ -56,8 +104,16 @@ export default function CustomerManagement() {
         `Bạn có chắc muốn xoá khách hàng #${customer.customerId}: ${customer.name}?`
       )
     ) {
-      alert("Đã xoá (demo)!");
-      // TODO: gọi API xoá rồi cập nhật state:
+      axios
+        .delete(`/api/customer/${customer.customerId}`)
+        .then(() => {
+          setCustomerList((prev) => prev.filter((c) => c.customerId !== customer.customerId));
+          alert(`Đã xoá khách hàng #${customer.customerId} thành công!`);
+        })
+        .catch((err) => {
+          console.error(err);
+          alert(`Xoá khách hàng #${customer.customerId} thất bại!`);
+        });
     }
   };
 
@@ -95,6 +151,16 @@ export default function CustomerManagement() {
           <Funnel size={22} />
           Bộ lọc
         </button>
+        {hasActiveFilters && (
+          <button
+            className="btn btn-outline-secondary"
+            title="Làm mới"
+            aria-label="Làm mới"
+            onClick={handleClearFilter}
+          >
+            <ArrowClockwise size={22} />
+          </button>
+        )}
       </div>
 
       <table className="table table-striped table-hover table-bordered">
@@ -121,7 +187,7 @@ export default function CustomerManagement() {
             customerList.map((c) => (
               <tr key={`customer-${c.customerId}`}>
                 <td>{c.customerId}</td>
-                <td className="text-center">{c.customerName}</td>
+                <td className="text-center">{c.name}</td>
                 <td className="text-center">{splitPhoneNumber(c.phone)}</td>
                 <td className="text-center">{c.email}</td>
                 <td className="text-center">{c.address}</td>
@@ -166,6 +232,8 @@ export default function CustomerManagement() {
       <CustomerFilterModal
         open={openFilter}
         onClose={() => setOpenFilter(false)}
+        onFilter={handleFilter}
+        currentFilters={currentFilters}
       />
     </>
   );

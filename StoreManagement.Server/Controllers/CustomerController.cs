@@ -1,100 +1,126 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 
-namespace StoreManagement.Server.Controllers
+namespace StoreManagement.Server.Controllers;
+
+[ApiController]
+[Route("/api/[controller]")]
+public class CustomerController : Controller
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class CustomerController : ControllerBase
+    private readonly StoreManagementContext _db;
+
+    public CustomerController(StoreManagementContext db)
     {
-        private readonly StoreManagementContext _context;
+        _db = db;
+    }
 
-        public CustomerController(StoreManagementContext context)
+    [HttpGet]
+    // [Authorize]
+    public async Task<IActionResult> GetCustomers(
+        [FromQuery] string? name, 
+        [FromQuery] string? hasPhone,
+        [FromQuery] string? hasEmail,
+        [FromQuery] string? hasAddress,
+        [FromQuery] DateTime? createdFrom,
+        [FromQuery] DateTime? createdTo,
+        [FromQuery] bool includeInactive = false)
+    {
+        var query = _db.Customers.AsQueryable();
+        
+        if (!includeInactive) 
+            query = query.Where(c => c.IsActive);
+            
+        if (!string.IsNullOrWhiteSpace(name))
         {
-            _context = context;
+            string pattern = $"%{name}%";
+            query = query.Where(c => 
+                EF.Functions.Like(c.Name, pattern) || 
+                EF.Functions.Like(c.Address, pattern) || 
+                EF.Functions.Like(c.Email, pattern) || 
+                EF.Functions.Like(c.Phone, pattern)
+            );
         }
-
-        // GET: api/Customer
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+            
+        if (!string.IsNullOrWhiteSpace(hasPhone))
         {
-            return await _context.Customers.ToListAsync();
+            if (hasPhone == "true")
+                query = query.Where(c => !string.IsNullOrEmpty(c.Phone));
+            else if (hasPhone == "false")
+                query = query.Where(c => string.IsNullOrEmpty(c.Phone));
         }
-
-        // GET: api/Customer/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Customer>> GetCustomer(int id)
+        
+        if (!string.IsNullOrWhiteSpace(hasEmail))
         {
-            var customer = await _context.Customers.FindAsync(id);
-
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            return customer;
+            if (hasEmail == "true")
+                query = query.Where(c => !string.IsNullOrEmpty(c.Email));
+            else if (hasEmail == "false")
+                query = query.Where(c => string.IsNullOrEmpty(c.Email));
         }
-
-        // POST: api/Customer
-        [HttpPost]
-        public async Task<ActionResult<Customer>> CreateCustomer(Customer customer)
+        
+        if (!string.IsNullOrWhiteSpace(hasAddress))
         {
-            _context.Customers.Add(customer);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetCustomer), new { id = customer.CustomerId }, customer);
+            if (hasAddress == "true")
+                query = query.Where(c => !string.IsNullOrEmpty(c.Address));
+            else if (hasAddress == "false")
+                query = query.Where(c => string.IsNullOrEmpty(c.Address));
         }
-
-        // PUT: api/Customer/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int id, Customer customer)
+        
+        if (createdFrom.HasValue)
         {
-            if (id != customer.CustomerId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(customer).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CustomerExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            query = query.Where(c => c.CreatedAt >= createdFrom.Value);
         }
-
-        // DELETE: api/Customer/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCustomer(int id)
+        
+        if (createdTo.HasValue)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            var endDate = createdTo.Value.Date.AddDays(1);
+            query = query.Where(c => c.CreatedAt < endDate);
         }
+        
+        var list = await query.ToListAsync();
+        return Ok(list);
+    }
 
-        private bool CustomerExists(int id)
-        {
-            return _context.Customers.Any(e => e.CustomerId == id);
-        }
+    [HttpGet("{id}")]
+    // [Authorize]
+    public async Task<IActionResult> GetCustomerById(int id)
+    {
+        var cus = await _db.Customers.FirstOrDefaultAsync(c => c.CustomerId == id);
+        return cus is null ? NotFound() : Ok(cus);
+    }
+
+    [HttpPost]
+    // [Authorize]
+    public async Task<IActionResult> AddCustomer([FromBody] Customer c)
+    {
+        c.IsActive = true;
+        _db.Customers.Add(c);
+        return await _db.SaveChangesAsync() > 0 ? StatusCode(201) : StatusCode(400);
+    }
+
+    [HttpPut("{id}")]
+    // [Authorize]
+    public async Task<IActionResult> UpdateCustomer([FromBody] Customer c, int id)
+    {
+        var cus = await _db.Customers.FirstOrDefaultAsync(x => x.CustomerId == id);
+        if (cus is null) return NotFound();
+
+        cus.Name = c.Name;
+        cus.Phone = c.Phone;
+        cus.Email = c.Email;
+        cus.Address = c.Address;
+        _db.Customers.Update(cus);
+        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+    }
+
+    [HttpDelete("{id}")]
+    // [Authorize]
+    public async Task<IActionResult> DeleteCustomer(int id)
+    {
+        var cus = await _db.Customers.FindAsync(id);
+        if (cus is null) return NotFound();
+        cus.IsActive = !cus.IsActive;
+        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
     }
 }

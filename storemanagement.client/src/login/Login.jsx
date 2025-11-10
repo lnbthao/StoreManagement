@@ -6,20 +6,20 @@ import "./Login.css";
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState({
-    id: "",
+    username: "",
     password: ""
   });
 
   const [errors, setErrors] = useState({
-    id: "",
+    username: "",
     password: ""
   });
 
   const validateField = (key, val) => {
     let msg = "";
 
-    if (key === "id") {
-      if (!val.trim()) msg = "Vui lòng nhập mã người dùng!";
+    if (key === "username") {
+      if (!val.trim()) msg = "Vui lòng nhập tên đăng nhập!";
     }
 
     if (key === "password") {
@@ -32,7 +32,7 @@ export default function Login() {
 
   const validateAll = () => {
     const m = {
-      id: validateField("id", user.id),
+      id: validateField("username", user.username),
       password: validateField("password", user.password)
     };
     return Object.values(m).every(x => !x);
@@ -47,22 +47,22 @@ export default function Login() {
         
         <div className="mb-4">
           <label
-            htmlFor="user-id"
+            htmlFor="user-username"
             className="form-label fw-semibold"
           >
-            ID người dùng:
+            Tên đăng nhập:
           </label>
           <input
-            id="user-id" type="text"
-            placeholder="ID người dùng"
-            className={`form-control ${errors.id ? "is-invalid" : ""}`}
-            value={user.id}
+            id="user-username" type="text"
+            placeholder="Tên đăng nhập"
+            className={`form-control ${errors.username ? "is-invalid" : ""}`}
+            value={user.username}
             onChange={e => {
-              setUser({...user, id: e.target.value});
-              validateField("id", e.target.value);
+              setUser({...user, username: e.target.value});
+              validateField("username", e.target.value);
             }}
           />
-          <small className="invalid-feedback">{errors.id}</small>
+          <small className="invalid-feedback d-block">{errors.username}</small>
         </div>
 
         <div className="mb-4">
@@ -76,89 +76,63 @@ export default function Login() {
             <input
               type={showPassword ? "text" : "password"}
               className={`form-control ${errors.password ? "is-invalid" : ""}`}
-              placeholder="Mật khẩu" id="user-pass" value={user.password}
+              placeholder="Mật khẩu" 
+              id="user-pass" 
+              value={user.password}
               onChange={e => {
                 setUser({...user, password: e.target.value});
                 validateField("password", e.target.value);
               }}
+              onKeyDown={(e) => { 
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleLogin();
+                }
+              }}
             />
             <button
+              type="button"
               className="btn btn-secondary rounded-end"
               onClick={() => setShowPassword(!showPassword)}
             >
               { showPassword ? <EyeSlash size={24} /> : <Eye size={24} /> }
             </button>
-            
-            <small className="invalid-feedback">{errors.password}</small>
           </div>
-          
+          <small className="invalid-feedback d-block">{errors.password}</small>
         </div>
 
         <div className="text-center">
-          <input
-            type="submit"
-            value="Đăng nhập"
-            className="btn"
+          <button
+            type="button"
+            className="btn btn-primary fw-semibold rounded-3"
             onClick={handleLogin}
-          />
+          >
+            Đăng nhập
+          </button>
         </div>
       </form>
     </main>
   )
 
-  function handleLogin() {
+  async function handleLogin() {
     if (!validateAll()) return;
+    try {
+      const res = await axios.post('/api/user/login', {
+        username: user.username,
+        password: user.password
+      }, { headers: { 'Content-Type': 'application/json' }});
 
-    // Gọi API đăng nhập
-    axios.post("/api/user/login", {
-      username: user.id,
-      password: user.password
-    })
-    .then(response => {
-      const data = response.data;
-      
-      // Lưu thông tin user vào localStorage
-      const userData = {
-        userId: data.userId,
-        username: data.username,
-        fullName: data.fullName,
-        role: data.role,
-        loginTime: new Date().toISOString()
-      };
-      
-      localStorage.setItem("currentUser", JSON.stringify(userData));
-      
-      alert(data.message || "Đăng nhập thành công!");
-      
-      // Chuyển hướng theo role
-      if (data.role === "admin") {
-        location.href = "/admin";
-      } else if (data.role === "staff") {
-        location.href = "/staff";
+      if (res.status === 200 && res.data?.token) {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('currentUser', JSON.stringify(res.data.user));
+        const role = res.data?.user?.role === 'admin' ? 'admin' : 'staff';
+        location.href = (`/${role}`);
       } else {
-        location.href = "/admin"; // Mặc định
+        alert('Đăng nhập thất bại!');
       }
-    })
-    .catch(error => {
-      console.error("Login error:", error);
-      
-      if (error.response) {
-        // Server trả về lỗi
-        const message = error.response.data?.message || "Đăng nhập thất bại!";
-        alert(message);
-        
-        if (error.response.status === 401) {
-          // Unauthorized - sai username hoặc password
-          if (message.includes("không tồn tại")) {
-            setErrors(e => ({ ...e, id: message }));
-          } else if (message.includes("không đúng")) {
-            setErrors(e => ({ ...e, password: message }));
-          }
-        }
-      } else {
-        // Lỗi network hoặc server không phản hồi
-        alert("Không thể kết nối đến server. Vui lòng kiểm tra lại!");
-      }
-    });
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Sai thông tin đăng nhập!';
+      setErrors(e => ({ ...e, username: msg, password: msg }));
+    }
   }
 }

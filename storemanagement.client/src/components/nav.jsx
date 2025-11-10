@@ -62,11 +62,9 @@ const SideNav = () => {
     </header>
   );
 
-  function handleLogout() {
-    // Xóa thông tin user khỏi localStorage
+    function handleLogout() {
+    localStorage.removeItem("token");
     localStorage.removeItem("currentUser");
-    
-    alert("Đã đăng xuất!");
     navTo("/");
   }
 };
