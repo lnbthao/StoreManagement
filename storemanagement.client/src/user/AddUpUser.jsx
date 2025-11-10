@@ -38,14 +38,8 @@ export default function AddUpUser({ status = false }) {
 
   async function fetchData(userId) {
     try {
-      // const { data } = await axios.get(`/api/user/${userId}`);
-      // setUser({ username: data.username, password: "", fullName: data.fullName, role: data.role });
-      setUser({
-        username: "tranthu0711",
-        password: "123123",
-        fullName: "Trần Thị Thu",
-        role: "admin",
-      });
+      const { data } = await axios.get(`/api/user/${userId}`);
+      setUser({ username: data.username, password: "", fullName: data.fullName, role: data.role });
     } catch (e) {
       console.error(e);
       alert("Không tải được dữ liệu người dùng.");
@@ -105,41 +99,35 @@ export default function AddUpUser({ status = false }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateAll()) return;
+    
+    try {
+      setSubmitting(true);
+      const payload = { ...user };
 
-    alert(
-      (status ? "Cập nhật -----" + id : "Thêm -----") +
-        JSON.stringify(user, null, 2)
-    );
+      let res;
+      if (status && id) {
+        res = await axios.put(`/api/user/${id}`, payload, {
+          headers: { "Content-Type": "application/json" },
+        });
+      } else {
+        res = await axios.post(`/api/user`, payload, {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-    // try {
-    //   setSubmitting(true);
-    //   const payload = { ...user };
-    //   if (status && !payload.password) delete payload.password;
-
-    //   let res;
-    //   if (status && id) {
-    //     res = await axios.put(`/api/user/${id}`, payload, {
-    //       headers: { "Content-Type": "application/json" },
-    //     });
-    //   } else {
-    //     res = await axios.post(`/api/user`, payload, {
-    //       headers: { "Content-Type": "application/json" },
-    //     });
-    //   }
-
-    //   if (res.status === 200 || res.status === 201) {
-    //     alert(`${status ? "Cập nhật" : "Thêm"} người dùng thành công!`);
-    //     navTo("/admin/user", { replace: true });
-    //   } else {
-    //     alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
-    //     console.error(res);
-    //   }
-    // } catch (err) {
-    //   alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
-    //   console.error(err);
-    // } finally {
-    //   setSubmitting(false);
-    // }
+      if (res.status === 200 || res.status === 201) {
+        alert(`${status ? "Cập nhật" : "Thêm"} người dùng thành công!`);
+        navTo("/admin/user", { replace: true });
+      } else {
+        alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
+        console.error(res);
+      }
+    } catch (err) {
+      alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return null;

@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { SideNav } from "./components/nav";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import './auth/axios';
+import ProtectedRoute from './auth/ProtectedRoute';
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
@@ -41,11 +43,12 @@ function AppRoutes() {
         <Route path="/staff" element={<Checkout />} />
 
         <Route path="/admin/*" element={
-          <main className="d-grid" id="admin">
-            <SideNav />
-            <section className="p-3 overflow-auto vh-100">
-              <Routes>              
-                <Route index element={<Dashboard />} />
+          <ProtectedRoute>
+            <main className="d-grid" id="admin">
+              <SideNav />
+              <section className="p-3 overflow-auto vh-100">
+                <Routes>
+                  <Route index element={<Dashboard />} />
 
                 <Route path="supplier">
                   <Route index element={<SupplierManagement />} />
@@ -86,9 +89,10 @@ function AppRoutes() {
                   <Route path="add" element={<AddUpCustomer />} />
                   <Route path="edit/:id" element={<AddUpCustomer status />} />
                 </Route>
-              </Routes>
-            </section>
-          </main>
+                </Routes>
+              </section>
+            </main>
+          </ProtectedRoute>
         } />
       </Routes>
     </Router>

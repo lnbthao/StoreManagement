@@ -50,9 +50,9 @@ const SideNav = () => {
     </header>
   );
 
-  function handleLogout() {
-    // TO DO: Đăng xuất (xóa cookie hoặc session)
-
+    function handleLogout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("currentUser");
     navTo("/");
   }
 };
