@@ -30,7 +30,7 @@ namespace StoreManagement.Server.Controllers
                     DiscountAmount = o.DiscountAmount ?? 0,
                     Customer = o.Customer == null
                         ? null
-                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.CustomerName },
+                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.Name },
                     User = o.User == null
                         ? null
                         : new IdNameDto { Id = o.User.UserId, Name = o.User.FullName },
@@ -67,7 +67,7 @@ namespace StoreManagement.Server.Controllers
                     DiscountAmount = o.DiscountAmount ?? 0,
                     Customer = o.Customer == null
                         ? null
-                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.CustomerName },
+                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.Name },
                     User = o.User == null
                         ? null
                         : new IdNameDto { Id = o.User.UserId, Name = o.User.FullName },
