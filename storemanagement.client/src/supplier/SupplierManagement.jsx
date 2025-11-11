@@ -1,9 +1,9 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { MOCK_SUPPLIERS } from "../../mockData/Supplier";
 import { splitPhoneNumber } from "../util";
-import { ArrowClockwise, DatabaseUp, Eye, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
+import { ArrowClockwise, Eye, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
 import SupplierViewModal from "./SupplierViewModal";
 
 export default function SupplierManagement() {
@@ -13,26 +13,35 @@ export default function SupplierManagement() {
   const [loading, setLoading] = useState(true);
   const [openView, setOpenView] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("active"); 
 
+  // Load danh sách từ API
   const loadFromApi = async (q = "") => {
-    const url = `/api/supplier`;
-    const res = await axios.get(url);
-    return res.data;
+    try {
+      const url = "/api/supplier" + (q ? `?name=${q}` : "");
+      const res = await axios.get(url);
+      setSupplierList(res.data);
+    } catch {
+      setSupplierList(MOCK_SUPPLIERS);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    (async () => {
-      document.title = "Nhà cung cấp | Quản lý kho hàng";
-      try {
-        const data = await loadFromApi();
-        setSupplierList(data);
-      } catch {
-        setSupplierList(MOCK_SUPPLIERS);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadFromApi();
   }, []);
+
+  const handleSearch = (value) => {
+    setSearch(value);
+    loadFromApi(value); // gọi API tìm kiếm khi nhập
+    };
+
+   const filteredList = supplierList.filter((s) => {
+  if (statusFilter === "active") return s.isActive;
+  if (statusFilter === "inactive") return !s.isActive;
+  return true; // all
+});
 
   const statusBadge = (active) => {
     const s = active ? "active" : "inactive";
@@ -51,27 +60,27 @@ export default function SupplierManagement() {
     setSelectedSupplier(null);
   };
 
-  const handleSearch = (value) => {
-    setSearch(value);
-    // TODO: gọi hàm loadFromApi để tiến hành tìm kiếm
-  };
-
   const handleActive = async (s) => {
-    if (confirm(`Bạn có muốn ${s.isActive ? "xóa" : "khôi phục"} nhà cung cấp #${s.supplierId}: ${s.supplierName || ""}?`)) {
-      // TODO: gọi API xoá rồi cập nhật state:
-
-      alert(`Đã ${s.isActive ? "xóa" : "khôi phục"} (demo)!`);
-      navTo(0); // Tải lại trang
+    if (confirm(`Bạn có muốn ${s.isActive ? "xóa" : "khôi phục"} nhà cung cấp #${s.supplierId}?`)) {
+      try {
+        if (s.isActive) {
+          await axios.delete(`/api/supplier/${s.supplierId}`);
+        } else {
+          await axios.put(`/api/supplier/${s.supplierId}`, { ...s, isActive: true });
+        }
+        loadFromApi(search); // reload danh sách sau khi thay đổi trạng thái
+      } catch (err) {
+        alert("Có lỗi xảy ra!");
+        console.error(err);
+      }
     }
   };
 
-  return loading ? (
-    <></>
-  ) : (
+  if (loading) return <p>Loading...</p>;
+
+  return (
     <>
-      <h1 className="text-center text-uppercase mb-3 fs-2">
-        Quản lý nhà cung cấp
-      </h1>
+      <h1 className="text-center text-uppercase mb-3 fs-2">Quản lý nhà cung cấp</h1>
 
       <div className="d-flex column-gap-3 mb-3">
         <button
@@ -80,7 +89,15 @@ export default function SupplierManagement() {
         >
           <PlusCircleFill className="me-1" /> Thêm nhà cung cấp
         </button>
-
+        <select
+        className="form-select w-auto ms-2"
+        value={statusFilter}
+        onChange={(e) => setStatusFilter(e.target.value)}
+            >   
+        <option value="all">Tất cả</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+        </select>
         <form className="col" onSubmit={(e) => e.preventDefault()}>
           <input
             type="search"
@@ -106,69 +123,60 @@ export default function SupplierManagement() {
         </thead>
 
         <tbody>
-          {supplierList.length === 0 ? (
+          {filteredList.length === 0 ? (
             <tr>
-              <td colSpan={6} className="text-center fst-italic">
+              <td colSpan={7} className="text-center fst-italic">
                 Không có nhà cung cấp!
               </td>
             </tr>
           ) : (
-            supplierList.map((s) => (
-              <tr key={`supplier-${s.supplierId}`}>
-                <td>{s.supplierId}</td>
+            filteredList.map((s) => (
+              <tr key={s.supplierId}>
+                <td className="text-center">{s.supplierId}</td>
                 <td className="text-center">{s.supplierName}</td>
                 <td className="text-center">{splitPhoneNumber(s.phone)}</td>
                 <td className="text-center">{s.email}</td>
                 <td className="text-center">{s.address}</td>
                 <td className="text-center">{statusBadge(s.isActive)}</td>
                 <td className="text-center">
-                {
-                  s.isActive ? (
+                  {s.isActive ? (
                     <>
-                      <button
-                        className="btn p-0 me-2 border border-0"
-                        title="Xem chi tiết"
-                        onClick={() => handleViewSupplier(s)}
-                      >
-                        <Eye size={22} color="darkcyan" />
-                      </button>
-                      <button
-                        className="btn p-0 me-2 border border-0"
-                        onClick={() => navTo(`/admin/supplier/edit/${s.supplierId}`)}
-                        title="Cập nhật"
-                      >
-                        <PencilSquare size={22} color="darkblue" />
-                      </button>
-                      <button
-                        className="btn p-0 border border-0"
-                        title="Xóa"
-                        onClick={() => handleActive(s)}
-                      >
-                        <Trash3 size={22} color="crimson" />
-                      </button>
+                                <button
+                                    className="btn p-0 me-2 border border-0"
+                                    onClick={() => handleViewSupplier(s)}
+                                    title="Xem"
+                                >
+                                    <Eye color="darkcyan" />
+                                </button>
+                                <button
+                                    className="btn p-0 me-2 border border-0"
+                                    onClick={() => navTo(`/admin/supplier/edit/${s.supplierId}`)}
+                                    title="Cập nhật"
+                                >
+                                    <PencilSquare color="darkblue" />
+                                </button>
+                                <button
+                                    className="btn p-0 me-2 border border-0"
+                                    onClick={() => handleActive(s)}
+                                    title="Xóa"
+                                >
+                                    <Trash3 color="crimson" />
+                                </button>
+
                     </>
                   ) : (
-                    <button
-                      className="btn p-0 border border-0"
-                      title="Khôi phục"
-                      onClick={() => handleActive(s)}
-                    >
-                      <ArrowClockwise size={22} color="darkcyan" />
+                    <button className="btn p-0 me-2 border border-0" onClick={() => handleActive(s)} title="Khôi phục">
+                      <ArrowClockwise color="darkcyan" />
                     </button>
-                  )
-                }
-                  
+                  )}
                 </td>
               </tr>
             ))
           )}
         </tbody>
       </table>
-      <SupplierViewModal
-        open={openView}
-        supplier={selectedSupplier}
-        onClose={handleCloseView}
-      />
+
+      <SupplierViewModal open={openView} supplier={selectedSupplier} onClose={handleCloseView} />
     </>
   );
 }

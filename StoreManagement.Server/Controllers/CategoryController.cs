@@ -34,22 +34,41 @@ public class CategoryController : Controller
     [HttpPost]
     public async Task<IActionResult> AddCategory(Category c)
     {
+        // Log dữ liệu nhận được
+        Console.WriteLine("=== AddCategory called ===");
+        Console.WriteLine($"CategoryId: {c.CategoryId}");
+        Console.WriteLine($"CategoryName: {c.CategoryName}");
+        Console.WriteLine($"IsActive: {c.IsActive}");
+
         _dbContext.Categories.Add(c);
-        return await _dbContext.SaveChangesAsync() > 0 ? StatusCode(201) : StatusCode(400);
+        var result = await _dbContext.SaveChangesAsync();
+
+        Console.WriteLine(result > 0
+            ? "Category added successfully!"
+            : "Failed to add category.");
+
+        return result > 0 ? StatusCode(201) : StatusCode(400);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateCategory(Category c, int id)
+    public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category c)
     {
-        _dbContext.Categories.Update(c);
-        return await _dbContext.SaveChangesAsync() > 0 ? StatusCode(200) : StatusCode(400);
+        var existing = await _dbContext.Categories.FindAsync(id);
+        existing.CategoryName = c.CategoryName;
+        existing.IsActive = c.IsActive;
+        await _dbContext.SaveChangesAsync();
+        return Ok(existing);
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        var deleteCategory = await GetCategoryById(id);
-        deleteCategory.IsActive = !deleteCategory.IsActive;
-        return await _dbContext.SaveChangesAsync() > 0 ? StatusCode(200) : StatusCode(400);
+        var existing = await _dbContext.Categories.FindAsync(id);
+        if (existing == null)
+            return NotFound($"Category with ID {id} not found.");
+
+        existing.IsActive = false;
+        await _dbContext.SaveChangesAsync();
+        return Ok();
     }
 }
