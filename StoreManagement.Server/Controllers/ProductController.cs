@@ -9,10 +9,12 @@ namespace StoreManagement.Server.Controllers
     public class ProductController : ControllerBase
     {
         private readonly StoreManagementContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public ProductController(StoreManagementContext context)
+        public ProductController(StoreManagementContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // GET: api/Product
@@ -32,6 +34,7 @@ namespace StoreManagement.Server.Controllers
                     CategoryName = p.Category != null ? p.Category.CategoryName : null,
                     SupplierId = p.SupplierId,
                     SupplierName = p.Supplier != null ? p.Supplier.SupplierName : null,
+                    ImageUrl = p.ImageUrl,
                     Stock = p.Inventories.Sum(i => (int?)i.Quantity ?? 0)
                 })
                 .ToListAsync();
@@ -57,6 +60,7 @@ namespace StoreManagement.Server.Controllers
                     CategoryName = p.Category != null ? p.Category.CategoryName : null,
                     SupplierId = p.SupplierId,
                     SupplierName = p.Supplier != null ? p.Supplier.SupplierName : null,
+                    ImageUrl = p.ImageUrl,
                     Stock = p.Inventories.Sum(i => (int?)i.Quantity ?? 0)
                 })
                 .FirstOrDefaultAsync();
@@ -71,41 +75,54 @@ namespace StoreManagement.Server.Controllers
 
         // POST: api/Product
         [HttpPost]
-        public async Task<ActionResult<object>> CreateProduct(Product product)
+        public async Task<ActionResult<object>> CreateProduct([FromForm] Product product, IFormFile? image)
         {
+            if (image != null)
+            {
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "images");
+                Directory.CreateDirectory(uploadsFolder);
+                string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    await image.CopyToAsync(fileStream);
+                product.ImageUrl = "/images/" + uniqueFileName;
+            }
+
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, new { productId = product.ProductId });
+            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId },
+                new { productId = product.ProductId, product.ImageUrl });
         }
 
         // PUT: api/Product/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, Product product)
+        public async Task<IActionResult> UpdateProduct(int id, [FromForm] Product product, IFormFile? image)
         {
-            if (id != product.ProductId)
+            var existing = await _context.Products.FindAsync(id);
+            if (existing == null)
+                return NotFound();
+
+            existing.ProductName = product.ProductName;
+            existing.Price = product.Price;
+            existing.Unit = product.Unit;
+            existing.IsActive = product.IsActive;
+            existing.CategoryId = product.CategoryId;
+            existing.SupplierId = product.SupplierId;
+            existing.Barcode = product.Barcode;
+
+            if (image != null)
             {
-                return BadRequest();
+                string uploadsFolder = Path.Combine(_env.WebRootPath, "images");
+                Directory.CreateDirectory(uploadsFolder);
+                string uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    await image.CopyToAsync(fileStream);
+                existing.ImageUrl = "/images/" + uniqueFileName;
             }
 
-            _context.Entry(product).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProductExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _context.SaveChangesAsync();
             return NoContent();
         }
 
@@ -115,13 +132,10 @@ namespace StoreManagement.Server.Controllers
         {
             var product = await _context.Products.FindAsync(id);
             if (product == null)
-            {
                 return NotFound();
-            }
 
             _context.Products.Remove(product);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -142,6 +156,7 @@ namespace StoreManagement.Server.Controllers
             public string? CategoryName { get; set; }
             public int? SupplierId { get; set; }
             public string? SupplierName { get; set; }
+            public string? ImageUrl { get; set; }
             public int Stock { get; set; }
         }
     }
