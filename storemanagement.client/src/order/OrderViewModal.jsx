@@ -3,13 +3,14 @@ import { useMemo } from "react";
 export default function OrderViewModal({ open, order, onClose }) {
   if (!open || !order) return null;
 
-  const o = order || {};
+  const o = order;
 
   const fmtMoney = (n) =>
     Number(n || 0).toLocaleString("vi-VN", {
       style: "currency",
       currency: "VND",
     });
+
   const fmtDateTime = (d) => (d ? new Date(d).toLocaleString("vi-VN") : "");
 
   const StatusBadge = useMemo(() => {
@@ -20,6 +21,8 @@ export default function OrderViewModal({ open, order, onClose }) {
   }, [o.status]);
 
   const stop = (e) => e.stopPropagation();
+
+  const items = o.orderItems || [];
 
   return (
     <>
@@ -32,67 +35,72 @@ export default function OrderViewModal({ open, order, onClose }) {
         aria-modal="true"
         onClick={onClose}
       >
-        <div className="modal-dialog modal-xl " onClick={stop}>
+        <div className="modal-dialog modal-xl" onClick={stop}>
           <div className="modal-content">
+
+            {/* HEADER */}
             <div className="modal-header">
-              <h5 className="modal-title">
-                Đơn hàng #{o.order_id ?? o.orderId}
-              </h5>
+              <h5 className="modal-title">Đơn hàng #{o.orderId}</h5>
               <button type="button" className="btn-close" onClick={onClose} />
             </div>
 
+            {/* BODY */}
             <div className="modal-body">
               <div className="row g-3">
                 <div className="col-md-3">
                   <small className="text-muted d-block">Khách hàng</small>
                   <div className="fw-semibold">
-                    {o.customer_id ?? o.customerId}
+                    {o.customer ? `${o.customer.customerId} - ${o.customer.customerName}` : "-"}
                   </div>
                 </div>
+
                 <div className="col-md-3">
                   <small className="text-muted d-block">Nhân viên</small>
-                  <div className="fw-semibold">{o.user_id ?? o.userId}</div>
+                  <div className="fw-semibold">
+                    {o.user ? `${o.user.userId} - ${o.user.fullName}` : "-"}
+                  </div>
                 </div>
+
                 <div className="col-md-3">
                   <small className="text-muted d-block">Mã KM</small>
                   <div className="fw-semibold">
-                    {o.promo_id ?? o.promoId ?? "-"}
+                    {o.promotion ? `${o.promotion.promoId} - ${o.promotion.promoCode}` : "-"}
                   </div>
                 </div>
+
+
                 <div className="col-md-3">
                   <small className="text-muted d-block">Ngày tạo</small>
-                  <div className="fw-semibold">
-                    {fmtDateTime(o.order_date ?? o.orderDate)}
-                  </div>
+                  <div className="fw-semibold">{fmtDateTime(o.orderDate)}</div>
                 </div>
+
                 <div className="col-md-3">
                   <small className="text-muted d-block">Trạng thái</small>
                   <div className="fw-semibold">{StatusBadge}</div>
                 </div>
+
                 <div className="col-md-3">
                   <small className="text-muted d-block">Tổng tiền</small>
-                  <div className="fw-semibold">
-                    {fmtMoney(o.total_amount ?? o.totalAmount)}
-                  </div>
+                  <div className="fw-semibold">{fmtMoney(o.totalAmount)}</div>
                 </div>
+
                 <div className="col-md-3">
                   <small className="text-muted d-block">Giảm giá</small>
-                  <div className="fw-semibold">
-                    {fmtMoney(o.discount_amount ?? o.discountAmount)}
-                  </div>
+                  <div className="fw-semibold">{fmtMoney(o.discountAmount)}</div>
+                </div>
+
+                <div className="col-md-3">
+                  <small className="text-muted d-block">Phải thanh toán</small>
+                  <div className="fw-semibold">{fmtMoney(o.totalAmount - o.discountAmount)}</div>
                 </div>
               </div>
 
               <hr className="my-4" />
 
-              {/* KHU VỰC DÀNH CHO SẢN PHẨM TRONG ĐƠN */}
+              {/* ITEMS TABLE */}
               <div>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h6 className="mb-0">Sản phẩm trong đơn</h6>
-                </div>
+                <h6 className="mb-2">Sản phẩm trong đơn</h6>
 
-                {/* Bảng sản phẩm – hiện để trống (placeholder).
-                    Sau này bạn truyền props: items = [{productId, name, qty, price, subtotal}, ...] */}
                 <table className="table table-sm table-bordered mb-0">
                   <thead>
                     <tr className="text-center">
@@ -103,37 +111,39 @@ export default function OrderViewModal({ open, order, onClose }) {
                       <th style={{ width: 160 }}>Thành tiền</th>
                     </tr>
                   </thead>
+
                   <tbody>
-                    {/* TODO: map items ở đây.
-                        Ví dụ:
-                        items?.map((it) => (
-                          <tr key={it.productId}>
-                            <td className="text-center">{it.productId}</td>
-                            <td>{it.name}</td>
-                            <td className="text-end">{it.qty}</td>
-                            <td className="text-end">{fmtMoney(it.price)}</td>
-                            <td className="text-end">{fmtMoney(it.subtotal)}</td>
-                          </tr>
-                        ))
-                    */}
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="text-center text-muted fst-italic"
-                      >
-                        Chưa có dữ liệu sản phẩm — thêm sau.
-                      </td>
-                    </tr>
+                    {items.length > 0 ? (
+                      items.map((it) => (
+                        <tr key={it.productId}>
+                          <td className="text-center">{it.productId}</td>
+                          <td>{it.product?.productName}</td>
+                          <td className="text-end">{it.quantity}</td>
+                          <td className="text-end">{fmtMoney(it.price)}</td>
+                          <td className="text-end">
+                            {fmtMoney(it.price * it.quantity)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="text-center text-muted fst-italic">
+                          Không có sản phẩm.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
 
+            {/* FOOTER */}
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={onClose}>
                 Đóng
               </button>
             </div>
+
           </div>
         </div>
       </div>

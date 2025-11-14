@@ -1,0 +1,9 @@
+main#staff header {
+  a {
+    cursor: pointer!important;
+
+    &:hover {
+      text-decoration: underline!important;
+    }
+  }
+}

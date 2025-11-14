@@ -32,19 +32,31 @@ import UserManagement from "./user/UserManagement";
 import AddUpUser from "./user/AddUpUser";
 import CustomerManagement from "./customer/CustomerManagement";
 import AddUpCustomer from "./customer/AddUpCustomer";
+import { StaffNav } from "./components/staff-nav";
+import StaffOrder from "./staff-order/StaffOrder";
 
 function AppRoutes() {
   return (
     <Router>
       <Routes>
         <Route index element={<Login />} />
-        <Route path="/staff" element={<Checkout />} />
+        <Route path="/staff/*" element={
+          <main id="staff">
+            <StaffNav />
+            <section className="p-3 overflow-auto">
+              <Routes>
+                <Route index element={<Checkout />} />
+                <Route path="order" element={<StaffOrder />} />
+              </Routes>
+            </section>
+          </main>
+        } />
 
         <Route path="/admin/*" element={
           <main className="d-grid" id="admin">
             <SideNav />
             <section className="p-3 overflow-auto vh-100">
-              <Routes>              
+              <Routes>
                 <Route index element={<Dashboard />} />
 
                 <Route path="supplier">

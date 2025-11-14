@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace StoreManagement.Server.Models;
 
@@ -17,5 +18,6 @@ public partial class Customer
 
     public DateTime? CreatedAt { get; set; }
 
+    [JsonIgnore]
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

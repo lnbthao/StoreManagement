@@ -122,7 +122,7 @@ export default function Login() {
       Biến tạm: role.
     */
     alert("Đăng nhập thành công!");
-    const role = "admin"; // Tạm thời: Sửa role thành staff để vô thanh toán
+    const role = "staff"; // Tạm thời: Sửa role thành staff để vô thanh toán
     location.href = (`/${role}`);
   }
 }

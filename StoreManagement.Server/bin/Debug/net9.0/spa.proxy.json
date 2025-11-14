@@ -3,7 +3,7 @@
 "ServerUrl": "https://localhost:60157",
 "RedirectUrl": "",
 "LaunchCommand": "npm run dev",
-"WorkingDirectory": "D:\\Store\\StoreManagement.Server\\..\\storemanagement.client",
+"WorkingDirectory": "C:\\Sgu University\\Nam5-Hocky1\\DotNet\\StoreManagement\\StoreManagement.Server\\..\\storemanagement.client",
 "MaxTimeoutInSeconds": "120",
 "KeepRunning": "false"
 }
