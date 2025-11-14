@@ -361,7 +361,7 @@ export default function Checkout() {
       <div id="container">
         {/* LEFT PANEL */}
         <div id="left">
-          <h1 className="fw-bold h3">Tất cả sản phẩm</h1>
+          <h1 className="fw-bold h3">Sản phẩm</h1>
 
           {/* SEARCH PRODUCT */}
           <div className="input-group mb-2">
