@@ -103,7 +103,7 @@ export default function PromotionManagement() {
         <form className="col d-flex" onSubmit={handleSubmitSearch}>
           <input
             type="search"
-            placeholder="Nhập mã KM, mô tả, trạng thái…"
+            placeholder="Nhập mã khuyến mãi"
             className="form-control"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

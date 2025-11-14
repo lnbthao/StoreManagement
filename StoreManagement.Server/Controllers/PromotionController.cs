@@ -75,6 +75,11 @@ public class PromotionController : Controller
             message = "Mã khuyến mãi đã hết lượt sử dụng.";
             isValid = false;
         }
+        else if (promo.UsageLimit == 0)
+        {
+            message = "Mã khuyến mãi đã hết lượt sử dụng.";
+            isValid = false;
+        }
         else if (orderAmount != null && promo.MinOrderAmount != null && orderAmount < promo.MinOrderAmount)
         {
             message = $"Đơn hàng chưa đạt giá trị tối thiểu ({promo.MinOrderAmount:N0}đ) để sử dụng mã này.";
