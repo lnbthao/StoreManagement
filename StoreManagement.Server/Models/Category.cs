@@ -9,7 +9,7 @@ public partial class Category
 
     public string CategoryName { get; set; } = null!;
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; } = true; // ← Sửa từ bool? thành bool
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }
