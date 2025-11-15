@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { SideNav } from "./components/nav";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import './auth/axios';
+import './auth/axios.js';
 import ProtectedRoute from './auth/ProtectedRoute';
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
