@@ -71,9 +71,8 @@ namespace StoreManagement.Server.Controllers
                     p.Unit,
                     p.IsActive,
                     p.CategoryId,
-                    CategoryName = p.Category?.CategoryName,
-                    p.SupplierId,
-                    SupplierName = p.Supplier?.SupplierName,
+                    CategoryName = p.Category == null ? null : p.Category.CategoryName,
+                    SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
                     p.ImageUrl, // ← TRẢ ẢNH
                     Stock = p.Inventories.Sum(i => i.Quantity)
                 })
