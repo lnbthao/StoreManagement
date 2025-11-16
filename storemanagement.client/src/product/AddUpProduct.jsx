@@ -8,17 +8,16 @@ export default function AddUpProduct({ status = false }) {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-
     const [product, setProduct] = useState({
         productId: 0,
         productName: "",
         categoryId: -1,
         supplierId: -1,
         barcode: "",
-        price: "", // Keep as string for controlled input + formatting
+        price: "",
         unit: "",
+        imageUrl: "" // Thêm để lưu ảnh cũ
     });
-
     const [categoryList, setCategoryList] = useState([]);
     const [supplierList, setSupplierList] = useState([]);
     const [errors, setErrors] = useState({
@@ -30,7 +29,12 @@ export default function AddUpProduct({ status = false }) {
         unit: "",
     });
 
-    // Fetch categories & suppliers on mount
+    // === THÊM CHO ẢNH ===
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState("");
+    const [imageUrl, setImageUrl] = useState(""); // Ảnh hiện tại (khi sửa)
+
+    // Fetch categories & suppliers
     useEffect(() => {
         const fetchDropdowns = async () => {
             try {
@@ -38,20 +42,15 @@ export default function AddUpProduct({ status = false }) {
                 setCategoryList(catRes.data);
             } catch (err) {
                 console.error("Lỗi tải category:", err);
-                // vẫn để categoryList = [] → không làm hỏng supplier
             }
-
             try {
                 const supRes = await axios.get("/api/supplier");
                 setSupplierList(supRes.data);
             } catch (err) {
                 console.error("Lỗi tải supplier:", err);
-                // vẫn để supplierList = [] → không làm hỏng category
             }
         };
-
         fetchDropdowns();
-
         if (status && id) {
             fetchProduct(id);
         } else {
@@ -59,7 +58,7 @@ export default function AddUpProduct({ status = false }) {
         }
     }, [status, id]);
 
-    // Fetch single product when updating
+    // Fetch product khi sửa
     const fetchProduct = async (productId) => {
         try {
             setLoading(true);
@@ -70,9 +69,11 @@ export default function AddUpProduct({ status = false }) {
                 categoryId: data.categoryId ?? -1,
                 supplierId: data.supplierId ?? -1,
                 barcode: data.barcode ?? "",
-                price: data.price?.toString() ?? "", // Ensure string
+                price: data.price?.toString() ?? "",
                 unit: data.unit ?? "",
+                imageUrl: data.imageUrl ?? ""
             });
+            setImageUrl(data.imageUrl ?? ""); // Hiển thị ảnh cũ
         } catch (e) {
             console.error(e);
             alert("Không tải được dữ liệu sản phẩm.");
@@ -87,11 +88,9 @@ export default function AddUpProduct({ status = false }) {
         if (key === "categoryId" || key === "supplierId") {
             val = Number(val);
         } else if (key === "price") {
-            // Allow only numbers, remove non-digits
             val = val.replace(/\D/g, "");
         }
         setProduct((p) => ({ ...p, [key]: val }));
-        // Clear error on change
         if (errors[key]) {
             setErrors((err) => ({ ...err, [key]: "" }));
         }
@@ -99,41 +98,33 @@ export default function AddUpProduct({ status = false }) {
 
     const validateField = (key, val) => {
         let msg = "";
-
         switch (key) {
             case "productName":
                 if (!val.trim()) msg = "Vui lòng nhập tên sản phẩm.";
                 else if (val.trim().length < 2) msg = "Tên tối thiểu 2 ký tự.";
                 break;
-
             case "categoryId":
                 if (Number(val) < 0) msg = "Vui lòng chọn loại sản phẩm.";
                 break;
-
             case "supplierId":
                 if (Number(val) < 0) msg = "Vui lòng chọn nhà cung cấp.";
                 break;
-
             case "barcode":
                 if (!val.trim()) msg = "Vui lòng nhập barcode.";
                 else if (!/^[0-9]{6,20}$/.test(val.trim()))
                     msg = "Barcode chỉ chứa số (6–20 ký tự).";
                 break;
-
             case "price":
                 const priceNum = Number(val);
                 if (!val) msg = "Vui lòng nhập giá.";
                 else if (priceNum <= 0) msg = "Giá phải lớn hơn 0.";
                 break;
-
             case "unit":
                 if (!val.trim()) msg = "Vui lòng nhập đơn vị tính.";
                 break;
-
             default:
                 break;
         }
-
         setErrors((e) => ({ ...e, [key]: msg }));
         return msg;
     };
@@ -151,7 +142,6 @@ export default function AddUpProduct({ status = false }) {
             ["price", product.price],
             ["unit", product.unit],
         ];
-
         let isValid = true;
         fields.forEach(([key, val]) => {
             const error = validateField(key, val);
@@ -160,19 +150,32 @@ export default function AddUpProduct({ status = false }) {
         return isValid;
     };
 
+    // === XỬ LÝ SUBMIT + UPLOAD ẢNH ===
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateAll()) return;
 
         setSubmitting(true);
         try {
+            let finalImageUrl = imageUrl || product.imageUrl || "";
+
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append("file", imageFile);
+                const uploadRes = await axios.post("/api/product/upload-image", formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                });
+                finalImageUrl = uploadRes.data.url;
+            }
+
             const payload = {
                 productName: product.productName.trim(),
-                categoryId: Number(product.categoryId),
-                supplierId: Number(product.supplierId),
+                categoryId: product.categoryId > 0 ? product.categoryId : null,
+                supplierId: product.supplierId > 0 ? product.supplierId : null,
                 barcode: product.barcode.trim(),
                 price: Number(product.price),
                 unit: product.unit.trim() || "pcs",
+                ...(finalImageUrl && { imageUrl: finalImageUrl }) // ← CHỈ GỬI KHI CÓ ẢNH
             };
 
             let res;
@@ -185,8 +188,6 @@ export default function AddUpProduct({ status = false }) {
             if (res.status === 200 || res.status === 201) {
                 alert(`${status ? "Cập nhật" : "Thêm"} sản phẩm thành công!`);
                 navTo("/admin/product", { replace: true });
-            } else {
-                throw new Error("Server error");
             }
         } catch (err) {
             console.error(err);
@@ -197,7 +198,6 @@ export default function AddUpProduct({ status = false }) {
         }
     };
 
-    // Format price with thousand separators
     const formatPrice = (value) => {
         return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     };
@@ -217,7 +217,6 @@ export default function AddUpProduct({ status = false }) {
             <h1 className="text-center text-uppercase mb-4 fs-2">
                 {status ? "Cập nhật" : "Thêm"} sản phẩm
             </h1>
-
             <form onSubmit={handleSubmit} noValidate className="mx-auto" style={{ maxWidth: "600px" }}>
                 {/* Product Name */}
                 <div className="mb-3">
@@ -257,9 +256,6 @@ export default function AddUpProduct({ status = false }) {
                         ))}
                     </select>
                     {errors.categoryId && <div className="invalid-feedback">{errors.categoryId}</div>}
-                    {categoryList.length === 0 && !loading && (
-                        <small className="text-muted">Không có loại sản phẩm nào.</small>
-                    )}
                 </div>
 
                 {/* Supplier */}
@@ -325,7 +321,7 @@ export default function AddUpProduct({ status = false }) {
                 </div>
 
                 {/* Unit */}
-                <div className="mb-4">
+                <div className="mb-3">
                     <label htmlFor="product-unit" className="form-label">
                         Đơn vị tính <span className="text-danger">*</span>
                     </label>
@@ -339,6 +335,32 @@ export default function AddUpProduct({ status = false }) {
                         onBlur={handleBlur("unit")}
                     />
                     {errors.unit && <div className="invalid-feedback">{errors.unit}</div>}
+                </div>
+
+                {/* === ẢNH SẢN PHẨM === */}
+                <div className="mb-3">
+                    <label className="form-label">Ảnh sản phẩm</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="form-control"
+                        onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                setImageFile(file);
+                                setImagePreview(URL.createObjectURL(file));
+                            }
+                        }}
+                    />
+                    {(imagePreview || imageUrl) && (
+                        <div className="mt-2">
+                            <img
+                                src={imagePreview || imageUrl}
+                                alt="Preview"
+                                style={{ maxWidth: "200px", maxHeight: "200px", objectFit: "cover", border: "1px solid #ddd", borderRadius: "8px" }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Buttons */}

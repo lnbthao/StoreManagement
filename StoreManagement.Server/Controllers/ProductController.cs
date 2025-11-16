@@ -16,7 +16,7 @@ namespace StoreManagement.Server.Controllers
 
         // GET: api/Product
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts([FromQuery] string? search)
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromQuery] string? search)
         {
             var query = _context.Products
                 .Include(p => p.Category)
@@ -33,18 +33,19 @@ namespace StoreManagement.Server.Controllers
             }
 
             var result = await query
-                .Select(p => new ProductDto
+                .Select(p => new // ← DÙNG ANONYMOUS OBJECT (không cần DTO)
                 {
-                    ProductId = p.ProductId,
-                    ProductName = p.ProductName,
-                    Barcode = p.Barcode,
-                    Price = p.Price,
-                    Unit = p.Unit,
-                    IsActive = p.IsActive,
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category == null ? null : p.Category.CategoryName, // SỬA DÒNG 45
-                    SupplierId = p.SupplierId,
-                    SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName, // SỬA DÒNG 47
+                    p.ProductId,
+                    p.ProductName,
+                    p.Barcode,
+                    p.Price,
+                    p.Unit,
+                    p.IsActive,
+                    p.CategoryId,
+                    CategoryName = p.Category == null ? null : p.Category.CategoryName,
+                    p.SupplierId,
+                    SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
+                    p.ImageUrl, // ← TRẢ ẢNH
                     Stock = p.Inventories.Sum(i => i.Quantity)
                 })
                 .ToListAsync();
@@ -54,25 +55,26 @@ namespace StoreManagement.Server.Controllers
 
         // GET: api/Product/5
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<ProductDto>> GetProduct(int id)
+        public async Task<ActionResult<object>> GetProduct(int id)
         {
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
                 .Include(p => p.Inventories)
                 .Where(p => p.ProductId == id && p.IsActive)
-                .Select(p => new ProductDto
+                .Select(p => new
                 {
-                    ProductId = p.ProductId,
-                    ProductName = p.ProductName,
-                    Barcode = p.Barcode,
-                    Price = p.Price,
-                    Unit = p.Unit,
-                    IsActive = p.IsActive,
-                    CategoryId = p.CategoryId,
-                    CategoryName = p.Category == null ? null : p.Category.CategoryName, // SỬA DÒNG 73
-                    SupplierId = p.SupplierId,
-                    SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName, // SỬA DÒNG 75
+                    p.ProductId,
+                    p.ProductName,
+                    p.Barcode,
+                    p.Price,
+                    p.Unit,
+                    p.IsActive,
+                    p.CategoryId,
+                    CategoryName = p.Category?.CategoryName,
+                    p.SupplierId,
+                    SupplierName = p.Supplier?.SupplierName,
+                    p.ImageUrl, // ← TRẢ ẢNH
                     Stock = p.Inventories.Sum(i => i.Quantity)
                 })
                 .FirstOrDefaultAsync();
@@ -87,11 +89,13 @@ namespace StoreManagement.Server.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            product.IsActive = true; // ĐẢM BẢO MỚI THÊM LÀ ACTIVE
+            product.IsActive = true;
+
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId }, new { productId = product.ProductId });
+            return CreatedAtAction(nameof(GetProduct), new { id = product.ProductId },
+                new { productId = product.ProductId });
         }
 
         // PUT: api/Product/5
@@ -124,6 +128,35 @@ namespace StoreManagement.Server.Controllers
             product.IsActive = false; // SOFT DELETE
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+        
+        // UPLOAD IMAGE
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadProductImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "Vui lòng chọn ảnh!" });
+
+            if (file.Length > 5 * 1024 * 1024)
+                return BadRequest(new { message = "Ảnh không được quá 5MB!" });
+
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!new[] { ".jpg", ".jpeg", ".png", ".webp" }.Contains(ext))
+                return BadRequest(new { message = "Chỉ chấp nhận JPG, PNG, WEBP!" });
+
+            var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "products");
+            Directory.CreateDirectory(folder);
+
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(folder, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var url = $"/uploads/products/{fileName}";
+            return Ok(new { url });
         }
 
         private bool ProductExists(int id) => _context.Products.Any(e => e.ProductId == id);
