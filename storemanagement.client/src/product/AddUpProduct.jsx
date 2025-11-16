@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 export default function AddUpProduct({ status = false }) {
 <<<<<<< HEAD
+<<<<<<< HEAD
     const navTo = useNavigate();
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
@@ -443,6 +444,130 @@ export default function AddUpProduct({ status = false }) {
     validateField(key, e.target.value);
   };
 
+=======
+  const navTo = useNavigate();
+  const { id } = useParams();
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [product, setProduct] = useState({
+    productId: 0,
+    productName: "",
+    categoryId: -1,
+    supplierId: -1,
+    barcode: "",
+    price: "",
+    unit: "",
+  });
+
+  const [categoryList, setCategoryList] = useState([]);
+  const [supplierList, setSupplierList] = useState([]);
+
+  const [errors, setErrors] = useState({
+    productName: "",
+    categoryId: "",
+    supplierId: "",
+    barcode: "",
+    price: "",
+    unit: "",
+  });
+
+  useEffect(() => {
+    document.title = `${
+      status ? "Cập nhật" : "Thêm"
+    } sản phẩm | Quản lý kho hàng`;
+    if (status && id) {
+      fetchData(id);
+    } else {
+      setLoading(false);
+    }
+  }, [status, id]);
+
+  async function fetchData(id) {
+    try {
+      //   const { data } = await axios.get(`/api/product/${id}`);
+      //   setProduct({
+      //     productId: data.productId ?? Number(id),
+      //     productName: data.productName ?? "",
+      //     categoryId: data.categoryId ?? -1,
+      //     supplierId: data.supplierId ?? -1,
+      //     barcode: data.barcode ?? "",
+      //     price: data.price ?? "",
+      //     unit: data.unit ?? "",
+      //   });
+      const data = {
+        productId: Number(id),
+        productName: "Coca Cola lon 330ml",
+        categoryId: 1,
+        supplierId: 2,
+        barcode: "8931234567890",
+        price: 12000,
+        unit: "lon",
+      };
+      setProduct({
+        productId: data.productId ?? Number(id),
+        productName: data.productName ?? "",
+        categoryId: data.categoryId ?? -1,
+        supplierId: data.supplierId ?? -1,
+        barcode: data.barcode ?? "",
+        price: data.price ?? "",
+        unit: data.unit ?? "",
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Không tải được dữ liệu khách hàng.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const setField = (key) => (e) => {
+    let val = e.target.value;
+    if (key === "categoryId" || key === "supplierId") val = Number(val);
+    setProduct((p) => ({ ...p, [key]: val }));
+  };
+
+  const validateField = (key, val) => {
+    let msg = "";
+
+    if (key === "productName") {
+      if (!val.trim()) msg = "Vui lòng nhập tên sản phẩm.";
+      else if (val.trim().length < 2) msg = "Tên tối thiểu 2 ký tự.";
+    }
+
+    if (key === "categoryId") {
+      if (Number(val) < 0) msg = "Vui lòng chọn loại sản phẩm.";
+    }
+
+    if (key === "supplierId") {
+      if (Number(val) < 0) msg = "Vui lòng chọn nhà cung cấp.";
+    }
+
+    if (key === "barcode") {
+      if (!val.trim()) msg = "Vui lòng nhập barcode.";
+      else if (!/^[0-9]{6,20}$/.test(val.trim()))
+        msg = "Barcode chỉ chứa số (6–20 ký tự).";
+    }
+
+    if (key === "price") {
+      const n = Number(String(val).replaceAll(",", ""));
+      if (!Number.isFinite(n) || n <= 0) msg = "Giá phải là số > 0.";
+    }
+
+    if (key === "unit") {
+      if (!val.trim()) msg = "Vui lòng nhập đơn vị tính.";
+    }
+
+    setErrors((e) => ({ ...e, [key]: msg }));
+    return msg;
+  };
+
+  const handleBlur = (key) => (e) => {
+    validateField(key, e.target.value);
+  };
+
+>>>>>>> parent of adb0137 (Merge branch 'main' into hoang-dev)
   const validateAll = () => {
     const m = {
       productName: validateField("productName", product.productName),
@@ -462,6 +587,9 @@ export default function AddUpProduct({ status = false }) {
     alert(
       (status ? "Cập nhật -----" + id : "Thêm -----") +
         JSON.stringify(product, null, 2)
+<<<<<<< HEAD
+>>>>>>> parent of adb0137 (Merge branch 'main' into hoang-dev)
+=======
 >>>>>>> parent of adb0137 (Merge branch 'main' into hoang-dev)
     );
 
