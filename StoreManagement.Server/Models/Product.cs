@@ -21,7 +21,7 @@ public partial class Product
 
     public DateTime? CreatedAt { get; set; }
 
-    public bool? IsActive { get; set; }
+    public bool IsActive { get; set; } = true;
 
     public virtual Category? Category { get; set; }
 
