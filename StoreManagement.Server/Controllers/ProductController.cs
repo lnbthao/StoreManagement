@@ -33,7 +33,7 @@ namespace StoreManagement.Server.Controllers
             }
 
             var result = await query
-                .Select(p => new // ← DÙNG ANONYMOUS OBJECT (không cần DTO)
+                .Select(p => new
                 {
                     p.ProductId,
                     p.ProductName,
@@ -43,10 +43,9 @@ namespace StoreManagement.Server.Controllers
                     p.IsActive,
                     p.CategoryId,
                     CategoryName = p.Category == null ? null : p.Category.CategoryName,
-                    p.SupplierId,
                     SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
-                    p.ImageUrl, // ← TRẢ ẢNH
-                    Stock = p.Inventories.Sum(i => i.Quantity)
+                    p.ImageUrl,
+                    quantity = p.Inventories.Sum(i => i.Quantity) // ← ĐỔI TÊN TỪ Stock → quantity
                 })
                 .ToListAsync();
 
@@ -73,8 +72,8 @@ namespace StoreManagement.Server.Controllers
                     p.CategoryId,
                     CategoryName = p.Category == null ? null : p.Category.CategoryName,
                     SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
-                    p.ImageUrl, // ← TRẢ ẢNH
-                    Stock = p.Inventories.Sum(i => i.Quantity)
+                    p.ImageUrl,
+                    quantity = p.Inventories.Sum(i => i.Quantity) // ← ĐỔI TÊN TỪ Stock → quantity
                 })
                 .FirstOrDefaultAsync();
 
@@ -117,18 +116,17 @@ namespace StoreManagement.Server.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Product/5 (soft delete)
-        [HttpDelete("{id:int}")]
+        // THAY THẾ [HttpDelete("{id:int}")]
+        [HttpPut("{id:int}/delete")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);
             if (product == null) return NotFound();
-
-            product.IsActive = false; // SOFT DELETE
+            product.IsActive = false;
             await _context.SaveChangesAsync();
-            return NoContent();
+            return Ok(new { message = "Đã xóa sản phẩm" }); // thêm message cho đẹp
         }
-        
+
         // UPLOAD IMAGE
         [HttpPost("upload-image")]
         public async Task<IActionResult> UploadProductImage(IFormFile file)
@@ -156,6 +154,58 @@ namespace StoreManagement.Server.Controllers
 
             var url = $"/uploads/products/{fileName}";
             return Ok(new { url });
+        }
+
+        // POST: api/Product/import-inventory
+        [HttpPost("import-inventory")]
+        public async Task<IActionResult> ImportInventory([FromBody] ImportInventoryRequest request)
+        {
+            if (request.Quantity <= 0)
+                return BadRequest(new { message = "Số lượng phải lớn hơn 0" });
+
+            var product = await _context.Products
+                .Include(p => p.Inventories)
+                .FirstOrDefaultAsync(p => p.ProductId == request.ProductId && p.IsActive);
+
+            if (product == null) return NotFound();
+
+            var inventory = product.Inventories.FirstOrDefault();
+            if (inventory == null)
+            {
+                inventory = new Inventory
+                {
+                    ProductId = request.ProductId,
+                    Quantity = request.Quantity,
+                    UpdatedAt = DateTime.Now
+                };
+                _context.Inventories.Add(inventory);
+            }
+            else
+            {
+                inventory.Quantity += request.Quantity;
+                inventory.UpdatedAt = DateTime.Now;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Nhập kho thành công", newStock = inventory.Quantity });
+        }
+
+        public class ImportInventoryRequest
+        {
+            public int ProductId { get; set; }
+            public int Quantity { get; set; }
+        }
+
+        // PUT: api/Product/5/restore
+        [HttpPut("{id:int}/restore")]
+        public async Task<IActionResult> RestoreProduct(int id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null) return NotFound();
+
+            product.IsActive = true;
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
 
         private bool ProductExists(int id) => _context.Products.Any(e => e.ProductId == id);
