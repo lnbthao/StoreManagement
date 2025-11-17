@@ -27,6 +27,15 @@ export default function ProductManagement() {
     const [openFilter, setOpenFilter] = useState(false);
     const [openInventory, setOpenInventory] = useState(false);
     const [inventoryProduct, setInventoryProduct] = useState(null);
+    const [originalList, setOriginalList] = useState([]); // dữ liệu gốc từ API
+
+    const [categories, setCategories] = useState([]);     // danh sách loại
+    const [hasInactive, setHasInactive] = useState(false); // có sản phẩm ngừng bán không
+
+    const [filters, setFilters] = useState({
+        category: "",      // Loại sản phẩm
+        status: "all"      // all / active / inactive
+    });
 
     // Hàm tải dữ liệu an toàn
     const loadFromApi = async (query = "") => {
@@ -51,6 +60,15 @@ export default function ProductManagement() {
             try {
                 const data = await loadFromApi();
                 setProductList(data);
+                setOriginalList(data);
+                // Lấy danh sách loại duy nhất
+                const uniqueCategories = [...new Set(data.map(p => p.categoryName).filter(Boolean))].sort();
+                setCategories(uniqueCategories);
+
+                // Kiểm tra có sản phẩm ngừng bán không
+                setHasInactive(data.some(p => !p.isActive));
+
+                setProductList(data);
             } catch (err) {
                 setError("Không tải được dữ liệu");
                 setProductList([]);
@@ -60,21 +78,33 @@ export default function ProductManagement() {
         })();
     }, []);
 
-    // Tìm kiếm (debounce)
+    // Hàm áp dụng cả TÌM KIẾM + LỌC (thay thế hoàn toàn useEffect tìm kiếm cũ)
     useEffect(() => {
-        const timer = setTimeout(async () => {
-            setLoading(true);
-            const data = await loadFromApi(search.trim());
-            setProductList(data);
-            setLoading(false);
-        }, 400);
+        let result = [...originalList];
 
-        return () => clearTimeout(timer);
-    }, [search]);
+        // Tìm kiếm (giữ nguyên)
+        if (search.trim()) {
+            const kw = search.toLowerCase();
+            result = result.filter(p =>
+                p.productName.toLowerCase().includes(kw) ||
+                (p.barcode && p.barcode.includes(kw))
+            );
+        }
 
-    // Chỉ thay 2 hàm này thôi – copy đè vào file hiện tại của bạn là xong
-    // ======================================================================
+        // LỌC THEO LOẠI
+        if (filters.category) {
+            result = result.filter(p => p.categoryName === filters.category);
+        }
 
+        // LỌC THEO TRẠNG THÁI
+        if (filters.status === "active") {
+            result = result.filter(p => p.isActive === true);
+        } else if (filters.status === "inactive") {
+            result = result.filter(p => p.isActive === false);
+        }
+
+        setProductList(result);
+    }, [search, filters, originalList]);
     // 1. XÓA / KHÔI PHỤC THẬT QUA API
     const handleActive = async (p) => {
         const action = p.isActive ? "xóa" : "khôi phục";
@@ -285,6 +315,13 @@ export default function ProductManagement() {
             <ProductFilterModal
                 open={openFilter}
                 onClose={() => setOpenFilter(false)}
+                onApply={(newFilters) => {
+                    setFilters(newFilters);
+                    setOpenFilter(false);
+                }}
+                currentFilters={filters}
+                categories={categories}          // truyền loại xuống
+                hasInactive={hasInactive}        // truyền có ngừng bán không
             />
 
             <InventoryModal
