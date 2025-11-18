@@ -34,3 +34,9 @@ main#staff section {
 .invalid-feedback {
   width: auto!important;
 }
+
+.btn-outline-success.btn-momo-custom:hover {
+  background-color: #a50064;
+  border-color: #a50064; /* Đồng bộ màu viền */
+  color: white;           /* Đổi màu chữ chính thành trắng */
+}

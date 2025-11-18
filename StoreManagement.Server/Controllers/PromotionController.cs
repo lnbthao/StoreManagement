@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
 
@@ -138,4 +138,14 @@ public class PromotionController : Controller
         var result = await _dbContext.SaveChangesAsync();
         return result > 0 ? Ok() : StatusCode(400);
     }
+
+    [HttpGet("active")]
+    public async Task<ActionResult<IEnumerable<Promotion>>> GetActivePromotions()
+    {
+        var now = DateTime.Now;
+        return await _dbContext.Promotions
+            .Where(p => p.StartDate <= now && p.EndDate >= now)
+            .ToListAsync();
+    }
 }
+

@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { SideNav } from "./components/nav";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import './auth/axios.js';
+import ProtectedRoute from './auth/ProtectedRoute';
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
@@ -28,6 +30,7 @@ import AddUpProduct from "./product/AddUpProduct";
 import PromotionManagement from "./promotion/PromotionManagement";
 import AddUpPromotion from "./promotion/AddUpPromotion";
 import OrderManagement from "./order/OrderManagement";
+import AddOrder from "./order/AddOrder";
 import UserManagement from "./user/UserManagement";
 import AddUpUser from "./user/AddUpUser";
 import CustomerManagement from "./customer/CustomerManagement";
@@ -53,11 +56,12 @@ function AppRoutes() {
         } />
 
         <Route path="/admin/*" element={
-          <main className="d-grid" id="admin">
-            <SideNav />
-            <section className="p-3 overflow-auto vh-100">
-              <Routes>
-                <Route index element={<Dashboard />} />
+          <ProtectedRoute>
+            <main className="d-grid" id="admin">
+              <SideNav />
+              <section className="p-3 overflow-auto vh-100">
+                <Routes>
+                  <Route index element={<Dashboard />} />
 
                 <Route path="supplier">
                   <Route index element={<SupplierManagement />} />
@@ -85,6 +89,7 @@ function AppRoutes() {
 
                 <Route path="order">
                   <Route index element={<OrderManagement />} />
+                  <Route path="add" element={<AddOrder />} />
                 </Route>
 
                 <Route path="user">
@@ -98,9 +103,10 @@ function AppRoutes() {
                   <Route path="add" element={<AddUpCustomer />} />
                   <Route path="edit/:id" element={<AddUpCustomer status />} />
                 </Route>
-              </Routes>
-            </section>
-          </main>
+                </Routes>
+              </section>
+            </main>
+          </ProtectedRoute>
         } />
       </Routes>
     </Router>

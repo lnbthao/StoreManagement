@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function OrderStatusModal({ open, order, onClose, onSave }) {
-  const [status, setStatus] = useState(order?.status ?? "pending");
-
-  useEffect(() => {
-    setStatus(order?.status ?? "pending");
-  }, [order]);
-
+export default function OrderStatusModal({ open, order, onClose }) {
   if (!open || !order) return null;
 
   const fmtMoney = (n) =>
@@ -14,6 +8,17 @@ export default function OrderStatusModal({ open, order, onClose, onSave }) {
       style: "currency",
       currency: "VND",
     });
+    
+  const statusLabel = (status) => {
+    const map = {
+      pending: "Chờ xác nhận",
+      pending_payment: "Chờ thanh toán",
+      paid: "Đã thanh toán",
+      canceled: "Đã hủy",
+      cancelled: "Đã hủy"
+    };
+    return map[status?.toLowerCase()] || status;
+  };
 
   return (
     <>
@@ -29,7 +34,7 @@ export default function OrderStatusModal({ open, order, onClose, onSave }) {
           <div className="modal-content">
             <div className="modal-header">
               <h5 className="modal-title">
-                Cập nhật trạng thái đơn #{order.order_id ?? order.orderId}
+                Thông tin đơn hàng #{order.order_id ?? order.orderId}
               </h5>
               <button type="button" className="btn-close" onClick={onClose} />
             </div>
@@ -68,28 +73,16 @@ export default function OrderStatusModal({ open, order, onClose, onSave }) {
               <hr className="my-3" />
 
               <div>
-                <label className="d-block mb-1">Trạng thái:</label>
-                <select
-                  className="form-control"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                >
-                  <option value="pending">pending</option>
-                  <option value="paid">paid</option>
-                  <option value="canceled">canceled</option>
-                </select>
+                <label className="d-block mb-1"><strong>Trạng thái:</strong></label>
+                <div className="fs-5">
+                  {statusLabel(order.status)}
+                </div>
               </div>
             </div>
 
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={onClose}>
                 Đóng
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => onSave(status)}
-              >
-                Lưu thay đổi
               </button>
             </div>
           </div>

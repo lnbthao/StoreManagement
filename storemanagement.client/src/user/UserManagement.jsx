@@ -1,8 +1,7 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Funnel, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
+import { Eye, Funnel, PencilSquare, PlusCircleFill, Trash3, ArrowClockwise } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import { MOCK_USERS } from "../../mockData/Users";
 import UserViewModal from "./UserViewModal";
 import UserFilterModal from "./UserFilterModal";
 
@@ -14,19 +13,65 @@ export default function UserManagement() {
   const [openView, setOpenView] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [openFilter, setOpenFilter] = useState(false);
+  const [currentFilters, setCurrentFilters] = useState({});
 
   const displayRole = role => (role === "admin") ? "Quản trị viên" : "Nhân viên";
 
-  const loadFromApi = async (q = "") => {
-    const url = `/api/user`;
-    const res = await axios.get(url);
-    return res.data;
+  const loadFromApi = async (q = "", filters = {}) => {
+    const params = {};
+    const name = (q || "").trim();
+    if (name) params.name = name;
+    
+    if (filters.role) params.role = filters.role;
+    if (filters.status === '' || filters.status === 'inactive') {
+      params.includeInactive = true;
+    } else {
+      params.includeInactive = false;
+    }
+    
+    if (filters.createdFrom) params.createdFrom = filters.createdFrom;
+    if (filters.createdTo) params.createdTo = filters.createdTo;
+    
+    const res = await axios.get("/api/user", { params });
+    let data = res.data;
+    if (filters.status === 'inactive') {
+      data = data.filter(u => !u.isActive);
+    }
+    
+    return data;
   };
 
   const handleSearch = (value) => {
     setSearch(value);
-    // TODO: gọi hàm loadFromApi để tiến hành tìm kiếm
   };
+
+  const handleFilter = (filters) => {
+    setCurrentFilters(filters);
+    loadFromApi(search, filters).then(data => setUserList(data));
+  };
+
+  const handleClearFilter = () => {
+    setCurrentFilters({});
+    loadFromApi(search, {}).then(data => setUserList(data));
+  };
+
+  const hasActiveFilters = Object.values(currentFilters).some(value => value !== '' && value !== undefined && value !== null);
+
+  // Debouncing cho search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (search !== undefined) {
+        loadFromApi(search, currentFilters)
+          .then(data => setUserList(data))
+          .catch(err => {
+            console.log(err);
+            alert("Tìm kiếm thất bại!");
+          });
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [search, currentFilters]);
 
   useEffect(() => {
     (async () => {
@@ -34,10 +79,9 @@ export default function UserManagement() {
       try {
         const data = await loadFromApi();
         setUserList(data);
-        setMockMode(false);
-      } catch {
-        setUserList(MOCK_USERS);
-        setMockMode(true);
+      } catch(err) {
+        console.log(err);
+        alert("Lấy danh sách người dùng thất bại!");
       } finally {
         setLoading(false);
       }
@@ -56,12 +100,20 @@ export default function UserManagement() {
 
   const handleDelete = async (u) => {
     if (
-      !window.confirm(
+      window.confirm(
         `Xóa người dùng #${u.userId}: ${u.fullName || u.username || ""}?`
       )
     ) {
-      alert("Đã xoá (demo)!");
-      // TODO: gọi API xoá rồi cập nhật state:
+      axios
+      .delete(`/api/user/${u.userId}`)
+      .then(() => {
+        setUserList((prev) => prev.filter((user) => user.userId !== u.userId));
+        alert(`Xóa người dùng #${u.userId} thành công!`);
+      })
+      .catch((err) => {
+        console.log(err);
+        alert(`Xóa người dùng #${u.userId} thất bại!`);
+      });
     }
   };
 
@@ -96,6 +148,16 @@ export default function UserManagement() {
           <Funnel size={22} />
           Bộ lọc
         </button>
+        {hasActiveFilters && (
+          <button
+            className="btn btn-outline-secondary"
+            title="Làm mới"
+            aria-label="Làm mới"
+            onClick={handleClearFilter}
+          >
+            <ArrowClockwise size={22} />
+          </button>
+        )}
       </div>
 
       <table className="table table-striped table-hover table-bordered">
@@ -157,7 +219,12 @@ export default function UserManagement() {
           )}
         </tbody>
       </table>
-      <UserFilterModal open={openFilter} onClose={() => setOpenFilter(false)} />
+      <UserFilterModal 
+        open={openFilter} 
+        onClose={() => setOpenFilter(false)} 
+        onFilter={handleFilter}
+        currentFilters={currentFilters}
+      />
       <UserViewModal
         open={openView}
         user={selectedUser}

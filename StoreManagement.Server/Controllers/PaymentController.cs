@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
+using StoreManagement.Server.Models.Momo;
+using StoreManagement.Server.Services.Momo;
 
 namespace StoreManagement.Server.Controllers;
 
@@ -9,10 +11,12 @@ namespace StoreManagement.Server.Controllers;
 public class PaymentController : ControllerBase
 {
     private readonly StoreManagementContext _context;
+    private IMomoService _momoService;
 
-    public PaymentController(StoreManagementContext context)
+    public PaymentController(StoreManagementContext context, IMomoService momoService)
     {
         _context = context;
+        _momoService = momoService;
     }
 
     // ============================
@@ -37,7 +41,7 @@ public class PaymentController : ControllerBase
                 UserId = 1, // có thể lấy từ token nếu có
                 CustomerId = request.customerId,
                 PromoId = request.promotionId,
-                DiscountAmount= request.discountValue
+                DiscountAmount = request.discountValue
             };
 
             _context.Orders.Add(order);
@@ -45,7 +49,7 @@ public class PaymentController : ControllerBase
 
             decimal total = 0;
 
-            
+
             // 2️⃣ Tạo order items + kiểm tra kho + trừ kho
             foreach (var item in request.Items)
             {
@@ -53,7 +57,7 @@ public class PaymentController : ControllerBase
                     .FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
 
                 if (product == null)
-           
+
                     return BadRequest(new { message = $"Sản phẩm ID {item.ProductId} không tồn tại." });
 
 
@@ -64,7 +68,7 @@ public class PaymentController : ControllerBase
                     .ToListAsync();
 
                 if (!inventories.Any())
-                 
+
                     return BadRequest(new { message = $"Không tìm thấy kho cho sản phẩm {product.ProductName}" });
 
 
@@ -117,7 +121,7 @@ public class PaymentController : ControllerBase
                         promo.UsedCount = (promo.UsedCount ?? 0) + 1;
                         _context.Promotions.Update(promo);
                     }
-                    
+
                 }
             }
 
@@ -152,24 +156,38 @@ public class PaymentController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
+
+    [HttpPost]
+    [Route("CreatePaymentMomo")]
+    public async Task<IActionResult> CreatePaymentMomo([FromForm] OrderInfoModel model)
+    {
+        var response = await _momoService.CreatePaymentAsync(model);
+        return Redirect(response.PayUrl);
+    }
+
+    [HttpGet]
+    [Route("ExecutePayment")]
+    public IActionResult ExecutePayment(IQueryCollection collection)
+    {
+        var response = _momoService.ExecutePaymentAsync(collection);
+        return Ok(response);
+    }
+
+    public class CashCheckoutRequest
+    {
+        public List<CartItem> Items { get; set; } = new();
+        public int? customerId { get; set; }
+
+        public int? promotionId { get; set; }
+        public decimal? discountValue { get; set; }
+    }
+
+    public class CartItem
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+    }
 }
 
-// ============================
-// DTO nhận dữ liệu từ frontend
-// ============================
 
-public class CashCheckoutRequest
-{
-    public List<CartItem> Items { get; set; } = new();
-    public int? customerId { get; set; }
-
-    public int? promotionId { get; set; }
-    public decimal? discountValue { get; set; }
-}
-
-public class CartItem
-{
-    public int ProductId { get; set; }
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
-}

@@ -1,73 +1,86 @@
-import { Axios } from "axios";
+// src/product/InventoryModal.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Modal, Button, Form } from "react-bootstrap";
 
-export default function InventoryModal({ open, onClose }) {
-  if (!open) return null;
+export default function InventoryModal({ open, product, onClose, onSubmit }) {
+    const [quantity, setQuantity] = useState("");
+    const [saving, setSaving] = useState(false);
 
-  const navTo = useNavigate();
-  const [quantity, setQuantity] = useState(0);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const qty = Number(quantity);
+        if (!qty || qty <= 0) {
+            alert("Vui lòng nhập số lượng lớn hơn 0!");
+            return;
+        }
 
-  const handleClose = () => {
-    setQuantity(0);
-    onClose();
-  }
+        setSaving(true);
+        try {
+            const response = await fetch("/api/product/import-inventory", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    ProductId: product.productId,   // ĐÚNG CHÍNH XÁC tên backend cần
+                    Quantity: qty
+                })
+            });
 
-  const handleUpdateInventory = () => {
-    // TO DO: Gọi api update tồn kho ở backend
+            const data = await response.json();
 
-    alert("Thêm tồn kho thành công!");
-    navTo(0); // Tải lại trang!
-  }
+            if (!response.ok) {
+                throw new Error(data.message || "Lỗi server");
+            }
 
-  const stop = (e) => e.stopPropagation();
+            // Gọi onSubmit để cập nhật tồn kho realtime
+            onSubmit(data.newStock);
 
-  return (
-    <>
-      <div className="modal-backdrop fade show" onClick={handleClose} />
-      <div
-        className="modal d-block"
-        tabIndex="-1"
-        role="dialog"
-        aria-modal="true"
-        onClick={handleClose}
-      >
-        <div className="modal-dialog " onClick={stop}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Thêm số lượng sản phẩm</h5>
-              <button type="button" className="btn-close" onClick={handleClose} />
-            </div>
-            <div className="modal-body">
-              <form noValidate>
-                <label htmlFor="add-quantity" className="form-label">
-                  Nhập số lượng cần thêm:
-                </label>
+            alert(`Nhập kho thành công! Tồn kho mới: ${data.newStock}`);
+            setQuantity("");
+            onClose();
+        } catch (err) {
+            console.error("Lỗi nhập kho:", err);
+            alert("Nhập kho thất bại: " + (err.message || "Vui lòng thử lại"));
+        } finally {
+            setSaving(false);
+        }
+    };
 
-                <input
-                  type="number" id="add-quantity"
-                  className={`form-control ${quantity < 1 ? "is-invalid" : ""}`}
-                  value={quantity}
-                  min={0}
-                  onChange={e => {
-                    setQuantity(e.target.value)
-                  }}
-                />
+    if (!product) return null;
 
-                <small className="invalid-feedback">Vui lòng nhập số lượng lớn hơn 0!</small>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-primary" onClick={handleUpdateInventory}>
-                Thêm
-              </button>
-              <button className="btn btn-secondary" onClick={handleClose}>
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+    return (
+        <Modal show={open} onHide={onClose} centered backdrop="static">
+            <Form onSubmit={handleSubmit}>
+                <Modal.Header closeButton={!saving}>
+                    <Modal.Title>Nhập kho - {product.productName}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Số lượng nhập kho *</Form.Label>
+                        <Form.Control
+                            type="number"
+                            min="1"
+                            value={quantity}
+                            onChange={(e) => setQuantity(e.target.value)}
+                            required
+                            disabled={saving}
+                            autoFocus
+                        />
+                    </Form.Group>
+                    <div className="text-muted">
+                        Tồn kho hiện tại: <strong className="text-success">{product.quantity ?? 0}</strong>
+                    </div>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={onClose} disabled={saving}>
+                        Hủy
+                    </Button>
+                    <Button variant="success" type="submit" disabled={saving}>
+                        {saving ? "Đang nhập..." : "Nhập kho"}
+                    </Button>
+                </Modal.Footer>
+            </Form>
+        </Modal>
+    );
 }

@@ -8,7 +8,7 @@ public partial class Customer
 {
     public int CustomerId { get; set; }
 
-    public string CustomerName { get; set; } = null!;
+    public string Name { get; set; } = null!;
 
     public string? Phone { get; set; }
 
@@ -19,5 +19,7 @@ public partial class Customer
     public DateTime? CreatedAt { get; set; }
 
     [JsonIgnore]
+    public bool IsActive { get; set; } = true;
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }

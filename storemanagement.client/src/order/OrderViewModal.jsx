@@ -15,9 +15,11 @@ export default function OrderViewModal({ open, order, onClose }) {
 
   const StatusBadge = useMemo(() => {
     const s = String(o.status || "").toLowerCase();
-    const map = { pending: "warning", paid: "success", canceled: "danger" };
-    const color = map[s] || "secondary";
-    return <span className={`badge bg-${color}`}>{o.status}</span>;
+    const colorMap = { pending: "warning", paid: "success", canceled: "danger" };
+    const textMap = { pending: "Chờ xác nhận", paid: "Đã thanh toán", canceled: "Đã hủy" };
+    const color = colorMap[s] || "secondary";
+    const text = textMap[s] || o.status;
+    return <span className={`badge bg-${color}`}>{text}</span>;
   }, [o.status]);
 
   const stop = (e) => e.stopPropagation();
@@ -62,7 +64,7 @@ export default function OrderViewModal({ open, order, onClose }) {
                 </div>
 
                 <div className="col-md-3">
-                  <small className="text-muted d-block">Mã KM</small>
+                  <small className="text-muted d-block">Mã khuyến mãi</small>
                   <div className="fw-semibold">
                     {o.promotion ? `${o.promotion.promoId} - ${o.promotion.promoCode}` : "-"}
                   </div>
@@ -93,6 +95,12 @@ export default function OrderViewModal({ open, order, onClose }) {
                   <small className="text-muted d-block">Phải thanh toán</small>
                   <div className="fw-semibold">{fmtMoney(o.totalAmount - o.discountAmount)}</div>
                 </div>
+                <div className="col-md-3">
+                  <small className="text-muted d-block">Tổng tiền</small>
+                  <div className="fw-semibold text-primary fs-5">
+                    {fmtMoney(o.total_amount ?? o.totalAmount)}
+                  </div>
+                </div>
               </div>
 
               <hr className="my-4" />
@@ -102,13 +110,13 @@ export default function OrderViewModal({ open, order, onClose }) {
                 <h6 className="mb-2">Sản phẩm trong đơn</h6>
 
                 <table className="table table-sm table-bordered mb-0">
-                  <thead>
+                  <thead className="table-light">
                     <tr className="text-center">
                       <th style={{ width: 90 }}>Mã SP</th>
                       <th>Tên sản phẩm</th>
-                      <th style={{ width: 120 }}>Số lượng</th>
-                      <th style={{ width: 160 }}>Đơn giá</th>
-                      <th style={{ width: 160 }}>Thành tiền</th>
+                      <th style={{ width: 100 }}>Số lượng</th>
+                      <th style={{ width: 140 }}>Đơn giá</th>
+                      <th style={{ width: 140 }}>Thành tiền</th>
                     </tr>
                   </thead>
 
