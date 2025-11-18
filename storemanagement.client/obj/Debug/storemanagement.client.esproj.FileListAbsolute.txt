@@ -1,3 +1,4 @@
 C:\Users\Sang\Downloads\Store\storemanagement.client\obj\Debug\storemanagement.client.esproj.CoreCompileInputs.cache
 D:\Store\storemanagement.client\obj\Debug\storemanagement.client.esproj.CoreCompileInputs.cache
 C:\Sgu University\Nam5-Hocky1\DotNet\StoreManagement\storemanagement.client\obj\Debug\storemanagement.client.esproj.CoreCompileInputs.cache
+D:\C\StoreManagement\storemanagement.client\obj\Debug\storemanagement.client.esproj.CoreCompileInputs.cache
