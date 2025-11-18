@@ -1,20 +1,24 @@
 {
   "format": 1,
   "restore": {
-    "D:\\C\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj": {}
+    "C:\\Sgu University\\Nam5-Hocky1\\DotNet\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj": {}
   },
   "projects": {
-    "D:\\C\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj": {
+    "C:\\Sgu University\\Nam5-Hocky1\\DotNet\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\C\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj",
+        "projectUniqueName": "C:\\Sgu University\\Nam5-Hocky1\\DotNet\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj",
         "projectName": "StoreManagement.Server",
-        "projectPath": "D:\\C\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj",
-        "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "D:\\C\\StoreManagement\\StoreManagement.Server\\obj\\",
+        "projectPath": "C:\\Sgu University\\Nam5-Hocky1\\DotNet\\StoreManagement\\StoreManagement.Server\\StoreManagement.Server.csproj",
+        "packagesPath": "C:\\Users\\84823\\.nuget\\packages\\",
+        "outputPath": "C:\\Sgu University\\Nam5-Hocky1\\DotNet\\StoreManagement\\StoreManagement.Server\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\ADMIN\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\84823\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -96,7 +100,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.307/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
