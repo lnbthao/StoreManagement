@@ -2,7 +2,6 @@ import axios from "axios";
 import { useState, useEffect } from "react";
 import { PencilSquare, PlusCircleFill, Trash3, ArrowClockwise } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import { MOCK_CATEGORIES } from "../../mockData/Categories";
 
 export default function CategoryManagement() {
   const navTo = useNavigate();

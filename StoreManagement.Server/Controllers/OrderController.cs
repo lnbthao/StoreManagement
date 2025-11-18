@@ -221,7 +221,6 @@ public class OrderController : Controller
 
             order.TotalAmount = finalTotal;
             order.DiscountAmount = discountAmount;
-            order.
 
             // Add order to database
             _dbContext.Orders.Add(order);
