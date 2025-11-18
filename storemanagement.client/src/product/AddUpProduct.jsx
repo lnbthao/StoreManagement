@@ -6,6 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 export default function AddUpProduct({ status = false }) {
     const navTo = useNavigate();
     const { id } = useParams();
+
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
 
@@ -15,12 +16,14 @@ export default function AddUpProduct({ status = false }) {
         categoryId: -1,
         supplierId: -1,
         barcode: "",
-        price: "", // Keep as string for controlled input + formatting
+        price: "",
         unit: "",
+        imageUrl: ""
     });
 
     const [categoryList, setCategoryList] = useState([]);
     const [supplierList, setSupplierList] = useState([]);
+
     const [errors, setErrors] = useState({
         productName: "",
         categoryId: "",
@@ -30,51 +33,51 @@ export default function AddUpProduct({ status = false }) {
         unit: "",
     });
 
-    // Fetch categories & suppliers on mount
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState("");
+    const [imageUrl, setImageUrl] = useState("");
+
+    // Load dropdown + product
     useEffect(() => {
-        const fetchDropdowns = async () => {
+        const loadAll = async () => {
             try {
-                const catRes = await axios.get("/api/category");
-                setCategoryList(catRes.data);
-            } catch (err) {
-                console.error("Lỗi tải category:", err);
-                // vẫn để categoryList = [] → không làm hỏng supplier
-            }
+                const cat = await axios.get("/api/category");
+                setCategoryList(cat.data);
+            } catch { }
 
             try {
-                const supRes = await axios.get("/api/supplier");
-                setSupplierList(supRes.data);
-            } catch (err) {
-                console.error("Lỗi tải supplier:", err);
-                // vẫn để supplierList = [] → không làm hỏng category
+                const sup = await axios.get("/api/supplier");
+                setSupplierList(sup.data);
+            } catch { }
+
+            if (status && id) {
+                await fetchProduct(id);
+            } else {
+                setLoading(false);
             }
         };
 
-        fetchDropdowns();
-
-        if (status && id) {
-            fetchProduct(id);
-        } else {
-            setLoading(false);
-        }
+        loadAll();
     }, [status, id]);
 
-    // Fetch single product when updating
     const fetchProduct = async (productId) => {
         try {
             setLoading(true);
             const { data } = await axios.get(`/api/product/${productId}`);
+
             setProduct({
                 productId: data.productId ?? Number(productId),
                 productName: data.productName ?? "",
                 categoryId: data.categoryId ?? -1,
                 supplierId: data.supplierId ?? -1,
                 barcode: data.barcode ?? "",
-                price: data.price?.toString() ?? "", // Ensure string
+                price: data.price?.toString() ?? "",
                 unit: data.unit ?? "",
+                imageUrl: data.imageUrl ?? ""
             });
-        } catch (e) {
-            console.error(e);
+
+            setImageUrl(data.imageUrl ?? "");
+        } catch (err) {
             alert("Không tải được dữ liệu sản phẩm.");
             navTo("/admin/product");
         } finally {
@@ -84,14 +87,12 @@ export default function AddUpProduct({ status = false }) {
 
     const setField = (key) => (e) => {
         let val = e.target.value;
-        if (key === "categoryId" || key === "supplierId") {
-            val = Number(val);
-        } else if (key === "price") {
-            // Allow only numbers, remove non-digits
-            val = val.replace(/\D/g, "");
-        }
+
+        if (key === "categoryId" || key === "supplierId") val = Number(val);
+        if (key === "price") val = val.replace(/\D/g, "");
+
         setProduct((p) => ({ ...p, [key]: val }));
-        // Clear error on change
+
         if (errors[key]) {
             setErrors((err) => ({ ...err, [key]: "" }));
         }
@@ -121,16 +122,12 @@ export default function AddUpProduct({ status = false }) {
                 break;
 
             case "price":
-                const priceNum = Number(val);
                 if (!val) msg = "Vui lòng nhập giá.";
-                else if (priceNum <= 0) msg = "Giá phải lớn hơn 0.";
+                else if (Number(val) <= 0) msg = "Giá phải lớn hơn 0.";
                 break;
 
             case "unit":
                 if (!val.trim()) msg = "Vui lòng nhập đơn vị tính.";
-                break;
-
-            default:
                 break;
         }
 
@@ -152,12 +149,11 @@ export default function AddUpProduct({ status = false }) {
             ["unit", product.unit],
         ];
 
-        let isValid = true;
+        let ok = true;
         fields.forEach(([key, val]) => {
-            const error = validateField(key, val);
-            if (error) isValid = false;
+            if (validateField(key, val)) ok = false;
         });
-        return isValid;
+        return ok;
     };
 
     const handleSubmit = async (e) => {
@@ -165,49 +161,46 @@ export default function AddUpProduct({ status = false }) {
         if (!validateAll()) return;
 
         setSubmitting(true);
+
         try {
+            let finalImage = imageUrl;
+
+            if (imageFile) {
+                const fd = new FormData();
+                fd.append("file", imageFile);
+                const up = await axios.post("/api/product/upload-image", fd, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                finalImage = up.data.url;
+            }
+
             const payload = {
                 productName: product.productName.trim(),
-                categoryId: Number(product.categoryId),
-                supplierId: Number(product.supplierId),
+                categoryId: product.categoryId,
+                supplierId: product.supplierId,
                 barcode: product.barcode.trim(),
                 price: Number(product.price),
-                unit: product.unit.trim() || "pcs",
+                unit: product.unit.trim(),
+                ...(finalImage && { imageUrl: finalImage })
             };
 
             let res;
-            if (status) {
-                res = await axios.put(`/api/product/${id}`, payload);
-            } else {
-                res = await axios.post(`/api/product`, payload);
-            }
+            if (status) res = await axios.put(`/api/product/${id}`, payload);
+            else res = await axios.post("/api/product", payload);
 
-            if (res.status === 200 || res.status === 201) {
-                alert(`${status ? "Cập nhật" : "Thêm"} sản phẩm thành công!`);
-                navTo("/admin/product", { replace: true });
-            } else {
-                throw new Error("Server error");
-            }
+            alert(`${status ? "Cập nhật" : "Thêm"} sản phẩm thành công!`);
+            navTo("/admin/product", { replace: true });
         } catch (err) {
-            console.error(err);
-            const msg = err.response?.data?.message || `${status ? "Cập nhật" : "Thêm"} thất bại!`;
-            alert(msg);
+            alert(err.response?.data?.message || "Lỗi khi lưu sản phẩm.");
         } finally {
             setSubmitting(false);
         }
     };
 
-    // Format price with thousand separators
-    const formatPrice = (value) => {
-        return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    };
-
     if (loading) {
         return (
             <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Đang tải...</span>
-                </div>
+                <div className="spinner-border text-primary"></div>
             </div>
         );
     }
@@ -218,17 +211,13 @@ export default function AddUpProduct({ status = false }) {
                 {status ? "Cập nhật" : "Thêm"} sản phẩm
             </h1>
 
-            <form onSubmit={handleSubmit} noValidate className="mx-auto" style={{ maxWidth: "600px" }}>
-                {/* Product Name */}
+            <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: "600px" }}>
+                {/* NAME */}
                 <div className="mb-3">
-                    <label htmlFor="product-name" className="form-label">
-                        Tên sản phẩm <span className="text-danger">*</span>
-                    </label>
+                    <label className="form-label">Tên sản phẩm *</label>
                     <input
-                        id="product-name"
-                        className={`form-control ${errors.productName ? "is-invalid" : ""}`}
-                        placeholder="Nhập tên sản phẩm"
                         type="text"
+                        className={`form-control ${errors.productName ? "is-invalid" : ""}`}
                         value={product.productName}
                         onChange={setField("productName")}
                         onBlur={handleBlur("productName")}
@@ -236,18 +225,14 @@ export default function AddUpProduct({ status = false }) {
                     {errors.productName && <div className="invalid-feedback">{errors.productName}</div>}
                 </div>
 
-                {/* Category */}
+                {/* CATEGORY */}
                 <div className="mb-3">
-                    <label htmlFor="product-category" className="form-label">
-                        Loại sản phẩm <span className="text-danger">*</span>
-                    </label>
+                    <label className="form-label">Loại sản phẩm *</label>
                     <select
-                        id="product-category"
                         className={`form-select ${errors.categoryId ? "is-invalid" : ""}`}
                         value={product.categoryId}
                         onChange={setField("categoryId")}
                         onBlur={handleBlur("categoryId")}
-                        disabled={categoryList.length === 0}
                     >
                         <option value={-1}>Chọn loại sản phẩm</option>
                         {categoryList.map((c) => (
@@ -257,23 +242,16 @@ export default function AddUpProduct({ status = false }) {
                         ))}
                     </select>
                     {errors.categoryId && <div className="invalid-feedback">{errors.categoryId}</div>}
-                    {categoryList.length === 0 && !loading && (
-                        <small className="text-muted">Không có loại sản phẩm nào.</small>
-                    )}
                 </div>
 
-                {/* Supplier */}
+                {/* SUPPLIER */}
                 <div className="mb-3">
-                    <label htmlFor="product-supplier" className="form-label">
-                        Nhà cung cấp <span className="text-danger">*</span>
-                    </label>
+                    <label className="form-label">Nhà cung cấp *</label>
                     <select
-                        id="product-supplier"
                         className={`form-select ${errors.supplierId ? "is-invalid" : ""}`}
                         value={product.supplierId}
                         onChange={setField("supplierId")}
                         onBlur={handleBlur("supplierId")}
-                        disabled={supplierList.length === 0}
                     >
                         <option value={-1}>Chọn nhà cung cấp</option>
                         {supplierList.map((s) => (
@@ -285,17 +263,12 @@ export default function AddUpProduct({ status = false }) {
                     {errors.supplierId && <div className="invalid-feedback">{errors.supplierId}</div>}
                 </div>
 
-                {/* Barcode */}
+                {/* BARCODE */}
                 <div className="mb-3">
-                    <label htmlFor="product-barcode" className="form-label">
-                        Barcode <span className="text-danger">*</span>
-                    </label>
+                    <label className="form-label">Barcode *</label>
                     <input
-                        id="product-barcode"
-                        className={`form-control ${errors.barcode ? "is-invalid" : ""}`}
-                        placeholder="Chỉ nhập số, 6–20 ký tự"
                         type="text"
-                        inputMode="numeric"
+                        className={`form-control ${errors.barcode ? "is-invalid" : ""}`}
                         value={product.barcode}
                         onChange={setField("barcode")}
                         onBlur={handleBlur("barcode")}
@@ -303,56 +276,75 @@ export default function AddUpProduct({ status = false }) {
                     {errors.barcode && <div className="invalid-feedback">{errors.barcode}</div>}
                 </div>
 
-                {/* Price */}
+                {/* PRICE */}
                 <div className="mb-3">
-                    <label htmlFor="product-price" className="form-label">
-                        Giá sản phẩm (VND) <span className="text-danger">*</span>
-                    </label>
+                    <label className="form-label">Giá bán *</label>
                     <input
-                        id="product-price"
-                        className={`form-control ${errors.price ? "is-invalid" : ""}`}
-                        placeholder="0"
                         type="text"
-                        inputMode="numeric"
-                        value={formatPrice(product.price)}
+                        className={`form-control ${errors.price ? "is-invalid" : ""}`}
+                        value={product.price}
                         onChange={setField("price")}
                         onBlur={handleBlur("price")}
                     />
                     {errors.price && <div className="invalid-feedback">{errors.price}</div>}
-                    {product.price && !errors.price && (
-                        <small className="text-muted">{Number(product.price).toLocaleString("vi-VN")} ₫</small>
-                    )}
                 </div>
 
-                {/* Unit */}
-                <div className="mb-4">
-                    <label htmlFor="product-unit" className="form-label">
-                        Đơn vị tính <span className="text-danger">*</span>
-                    </label>
+                {/* UNIT */}
+                <div className="mb-3">
+                    <label className="form-label">Đơn vị tính *</label>
                     <input
-                        id="product-unit"
-                        className={`form-control ${errors.unit ? "is-invalid" : ""}`}
-                        placeholder='VD: "lon", "hộp", "chai", "pcs"'
                         type="text"
+                        className={`form-control ${errors.unit ? "is-invalid" : ""}`}
                         value={product.unit}
                         onChange={setField("unit")}
                         onBlur={handleBlur("unit")}
+                        placeholder='VD: "chai", "lon", "hộp", "pcs"'
                     />
                     {errors.unit && <div className="invalid-feedback">{errors.unit}</div>}
                 </div>
 
-                {/* Buttons */}
+                {/* IMAGE */}
+                <div className="mb-3">
+                    <label className="form-label">Ảnh sản phẩm</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        className="form-control"
+                        onChange={(e) => {
+                            const f = e.target.files[0];
+                            if (f) {
+                                setImageFile(f);
+                                setImagePreview(URL.createObjectURL(f));
+                            }
+                        }}
+                    />
+
+                    {(imagePreview || imageUrl) && (
+                        <img
+                            src={imagePreview || imageUrl}
+                            alt="preview"
+                            style={{
+                                maxWidth: 200,
+                                marginTop: 10,
+                                borderRadius: 8,
+                                border: "1px solid #ddd",
+                            }}
+                        />
+                    )}
+                </div>
+
+                {/* BUTTONS */}
                 <div className="d-flex justify-content-center gap-3">
                     <button type="submit" className="btn btn-success" disabled={submitting}>
-                        <FloppyFill size={20} className="me-1" />
+                        <FloppyFill className="me-1" />
                         {submitting ? "Đang lưu..." : "Lưu"}
                     </button>
                     <button
                         type="button"
-                        onClick={() => navTo("/admin/product", { replace: true })}
                         className="btn btn-secondary"
+                        onClick={() => navTo("/admin/product", { replace: true })}
                     >
-                        <XLg size={20} className="me-1" /> Hủy
+                        <XLg className="me-1" /> Hủy
                     </button>
                 </div>
             </form>

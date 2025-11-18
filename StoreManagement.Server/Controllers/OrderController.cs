@@ -142,7 +142,7 @@ namespace StoreManagement.Server.Controllers
                     }
 
                     // Check stock
-                    var currentStock = inventory.Quantity ?? 0;
+                    var currentStock = inventory.Quantity;
                     if (currentStock < item.Quantity)
                     {
                         return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' không đủ hàng trong kho! Tồn kho: {currentStock}" });
@@ -241,7 +241,7 @@ namespace StoreManagement.Server.Controllers
                         if (inventory != null)
                         {
                             // Hoàn trả số lượng vào kho
-                            inventory.Quantity = (inventory.Quantity ?? 0) + item.Quantity;
+                            inventory.Quantity = inventory.Quantity + item.Quantity;
                         }
                     }
                 }
@@ -295,7 +295,7 @@ namespace StoreManagement.Server.Controllers
                     
                 if (inventory != null)
                 {
-                    inventory.Quantity = (inventory.Quantity ?? 0) + item.Quantity;
+                    inventory.Quantity = inventory.Quantity + item.Quantity;
                     inventory.UpdatedAt = DateTime.Now;
                 }
             }
