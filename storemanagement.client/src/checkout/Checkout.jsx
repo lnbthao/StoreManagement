@@ -6,7 +6,7 @@ import "./checkout.css";
 
 export default function Checkout() {
   const navTo = useNavigate();
-
+  const user = JSON.parse(localStorage.getItem("currentUser") || "{}");
   // LIST
   const [productList, setProductList] = useState([]);
   const [checkoutList, setCheckoutList] = useState([]);
@@ -318,7 +318,8 @@ export default function Checkout() {
         })),
         promotionId: appliedPromotion ? appliedPromotion.promoId : null,
         discountValue: discountValue,
-        totalAmount: total
+        totalAmount: total,
+        userId: user.userId
       };
 
       console.log("Payload thanh toán tiền mặt: ", payload);
@@ -465,7 +466,7 @@ export default function Checkout() {
           {customer && (
             <div className="mt-3 p-2 mb-3 border rounded bg-light">
               <div>
-                <strong>Khách hàng:</strong> {customer.customerName}
+                <strong>Khách hàng:</strong> {customer.name}
               </div>
               {customer.phone && (
                 <div>

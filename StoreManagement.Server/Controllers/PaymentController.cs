@@ -38,7 +38,7 @@ public class PaymentController : ControllerBase
                 OrderDate = DateTime.Now,
                 Status = "paid",
                 TotalAmount = 0,
-                UserId = 1, // có thể lấy từ token nếu có
+                UserId = request.userId, // có thể lấy từ token nếu có
                 CustomerId = request.customerId,
                 PromoId = request.promotionId,
                 DiscountAmount = request.discountValue
@@ -177,7 +177,7 @@ public class PaymentController : ControllerBase
     {
         public List<CartItem> Items { get; set; } = new();
         public int? customerId { get; set; }
-
+        public int? userId { get; set; }
         public int? promotionId { get; set; }
         public decimal? discountValue { get; set; }
     }
