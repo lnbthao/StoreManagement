@@ -261,6 +261,7 @@ export default function AddOrder() {
         orderDate: new Date().toISOString(),
         status: "pending",
         totalAmount: total,
+        
         discountAmount: discount,
         orderItems: cart.map((item) => ({
           productId: parseInt(item.productId),

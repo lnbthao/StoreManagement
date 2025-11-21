@@ -11,7 +11,6 @@ import {
 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
 import { toVNNumber, toVNPrice } from "../util";
-import { MOCK_PRODUCTS } from "../../mockData/Products";
 import ProductViewModal from "./ProductViewModal";
 import ProductFilterModal from "./ProductFilterModal";
 import InventoryModal from "./InventoryModal";

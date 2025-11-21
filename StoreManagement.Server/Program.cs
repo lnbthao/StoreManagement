@@ -8,7 +8,16 @@ using StoreManagement.Server.Models.Momo;
 using StoreManagement.Server.Services.Momo;
 
 var builder = WebApplication.CreateBuilder(args);
+// 🔥 ÉP API CHẠY HTTPS BẮT BUỘC
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(7064, listenOpts =>
+    {
+        listenOpts.UseHttps();  // chạy HTTPS
+    });
 
+    options.ListenLocalhost(5069);  // chạy HTTP nếu cần
+});
 var connectionStr = builder.Configuration.GetConnectionString("StorageManagement")!;
 
 //add momo
@@ -50,11 +59,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+
+
 // Add Swagger
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
 app.UseSwagger();
 app.UseSwaggerUI();
 

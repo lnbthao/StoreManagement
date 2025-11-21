@@ -93,17 +93,20 @@ public partial class StoreManagementContext : DbContext
             entity.Property(e => e.Quantity)
                 .HasDefaultValueSql("'0'")
                 .HasColumnName("quantity");
+
             entity.Property(e => e.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.Product).WithMany(p => p.Inventories)
+            entity.HasOne(d => d.Product)
+                .WithMany(p => p.Inventories)
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventory_ibfk_1");
         });
+
 
         modelBuilder.Entity<Order>(entity =>
         {

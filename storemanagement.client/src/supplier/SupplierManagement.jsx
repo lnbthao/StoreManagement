@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MOCK_SUPPLIERS } from "../../mockData/Supplier";
 import { splitPhoneNumber } from "../util";
 import { ArrowClockwise, DatabaseUp, Eye, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
 import SupplierViewModal from "./SupplierViewModal";
