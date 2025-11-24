@@ -2,6 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { FloppyFill, XLg } from "react-bootstrap-icons";
 import { useNavigate, useParams } from "react-router-dom";
+import { backendUrl } from "../util";
 
 export default function AddUpProduct({ status = false }) {
     const navTo = useNavigate();
@@ -73,10 +74,10 @@ export default function AddUpProduct({ status = false }) {
                 barcode: data.barcode ?? "",
                 price: data.price?.toString() ?? "",
                 unit: data.unit ?? "",
-                imageUrl: data.imageUrl ?? ""
+                imageUrl: `${backendUrl}${data.imageUrl}` ?? ""
             });
 
-            setImageUrl(data.imageUrl ?? "");
+            setImageUrl(`${backendUrl}${data.imageUrl}` ?? "");
         } catch (err) {
             alert("Không tải được dữ liệu sản phẩm.");
             navTo("/admin/product");
@@ -256,7 +257,7 @@ export default function AddUpProduct({ status = false }) {
                         <option value={-1}>Chọn nhà cung cấp</option>
                         {supplierList.map((s) => (
                             <option key={s.supplierId} value={s.supplierId}>
-                                {s.name}
+                                {s.supplierName}
                             </option>
                         ))}
                     </select>

@@ -101,7 +101,7 @@ export default function CustomerManagement() {
   const handleDelete = (customer) => {
     if (
       window.confirm(
-        `Bạn có chắc muốn xoá khách hàng #${customer.customerId}: ${customer.name}?`
+        `Bạn có chắc muốn xoá khách hàng #${customer.customerId}: ${customer.customerName}?`
       )
     ) {
       axios
@@ -187,7 +187,7 @@ export default function CustomerManagement() {
             customerList.map((c) => (
               <tr key={`customer-${c.customerId}`}>
                 <td>{c.customerId}</td>
-                <td className="text-center">{c.name}</td>
+                <td className="text-center">{c.customerName}</td>
                 <td className="text-center">{splitPhoneNumber(c.phone)}</td>
                 <td className="text-center">{c.email}</td>
                 <td className="text-center">{c.address}</td>
@@ -197,27 +197,41 @@ export default function CustomerManagement() {
                     : ""}
                 </td>
                 <td className="text-center">
-                  <button
-                    className="btn p-0 me-2 border border-0"
-                    title="Xem chi tiết"
-                    onClick={() => openCustomerModal(c)}
-                  >
-                    <Eye size={22} color="darkcyan" />
-                  </button>
-                  <button
-                    className="btn p-0 me-2 border border-0"
-                    onClick={() => navTo(`/admin/customer/edit/${c.customerId}`)}
-                    title="Sửa"
-                  >
-                    <PencilSquare size={22} color="darkblue" />
-                  </button>
-                  <button
-                    className="btn p-0 border border-0"
-                    title="Xoá"
-                    onClick={() => handleDelete(c)}
-                  >
-                    <Trash3 size={22} color="crimson" />
-                  </button>
+                {
+                  c.isActive ? (
+                    <>
+                      <button
+                        className="btn p-0 me-2 border border-0"
+                        title="Xem chi tiết"
+                        onClick={() => openCustomerModal(c)}
+                      >
+                        <Eye size={22} color="darkcyan" />
+                      </button>
+                      <button
+                        className="btn p-0 me-2 border border-0"
+                        onClick={() => navTo(`/admin/customer/edit/${c.customerId}`)}
+                        title="Sửa"
+                      >
+                        <PencilSquare size={22} color="darkblue" />
+                      </button>
+                      <button
+                        className="btn p-0 border border-0"
+                        title="Xoá"
+                        onClick={() => handleDelete(c)}
+                      >
+                        <Trash3 size={22} color="crimson" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn p-0 me-2 border border-0"
+                      title="Xem chi tiết"
+                      onClick={() => openCustomerModal(c)}
+                    >
+                      <Eye size={22} color="darkcyan" />
+                    </button>
+                  )
+                }
                 </td>
               </tr>
             ))

@@ -2,6 +2,7 @@ import axios from "axios";
 import { useState, useEffect } from "react";
 import { Eye, Search, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
+import { MOCK_PROMOTIONS } from "../../mockData/Promotion";
 import PromotionViewModal from "./PromotionViewModal";
 import { toVNDate, toVNNumber, toVNPrice } from "../util";
 
@@ -26,7 +27,7 @@ export default function PromotionManagement() {
 
   useEffect(() => {
     (async () => {
-      document.title = "Quản lý khuyến mãi";
+      document.title = "Mã khuyến mãi | Quản lý kho hàng";
       try {
         const data = await loadFromApi();
         setPromotionList(data);

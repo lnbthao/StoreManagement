@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StoreManagement.Server.Models;
-using System.Text;
-using System.Text.Json.Serialization;
 using StoreManagement.Server.Models.Momo;
 using StoreManagement.Server.Services.Momo;
+using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Lấy chuỗi kết nối
 var connectionStr = builder.Configuration.GetConnectionString("StorageManagement")!;
 
 //add momo
@@ -53,6 +55,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 

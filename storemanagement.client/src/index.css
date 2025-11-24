@@ -35,8 +35,14 @@ main#staff section {
   width: auto!important;
 }
 
-.btn-outline-success.btn-momo-custom:hover {
-  background-color: #a50064;
-  border-color: #a50064; /* Đồng bộ màu viền */
-  color: white;           /* Đổi màu chữ chính thành trắng */
+@media (min-width: 768px) {
+  .w-md-75 {
+    width: 75%!important;
+  }
+}
+
+.btn:hover {
+  .text-muted {
+    color: white!important
+  }
 }

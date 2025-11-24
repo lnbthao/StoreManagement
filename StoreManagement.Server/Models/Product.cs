@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace StoreManagement.Server.Models;
+﻿namespace StoreManagement.Server.Models;
 
 public partial class Product
 {
@@ -12,6 +9,8 @@ public partial class Product
     public int? SupplierId { get; set; }
 
     public string ProductName { get; set; } = null!;
+
+    public string? ImageUrl { get; set; }
 
     public string? Barcode { get; set; }
 

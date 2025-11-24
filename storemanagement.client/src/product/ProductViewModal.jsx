@@ -1,10 +1,10 @@
 // src/product/ProductViewModal.jsx
 import { Modal, Button } from "react-bootstrap";
-import { toVNPrice, toVNNumber } from "../util";
+import { backendUrl, toVNPrice, toVNNumber } from "../util";
 
 export default function ProductViewModal({ open, product, onClose }) {
     if (!product) return null;
-    console.log("Ảnh gốc của sản phẩm:", product.imageUrl);
+
     return (
         <Modal show={open} onHide={onClose} size="lg" centered>
             <Modal.Header closeButton><Modal.Title>Chi tiết sản phẩm</Modal.Title></Modal.Header>
@@ -15,8 +15,9 @@ export default function ProductViewModal({ open, product, onClose }) {
                         <div className="text-center mt-4">
                             {product.imageUrl ? (
                                 <img
-                                    src={`http://localhost:5069${product.imageUrl}`}
+                                    src={`${backendUrl}${product.imageUrl}`}
                                     alt={product.productName}
+                                    onError={e => e.target.src = `${backendUrl}/images/products/error.png`}
                                     className="img-fluid rounded shadow-sm border"
                                     style={{ maxHeight: "380px", maxWidth: "100%", objectFit: "contain" }}
                                 />

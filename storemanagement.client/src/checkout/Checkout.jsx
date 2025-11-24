@@ -1,27 +1,38 @@
 import axios from "axios";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { backendUrl, toVNPrice } from "../util";
 import { useNavigate } from "react-router-dom";
-import { toVNPrice } from "../util";
 import "./checkout.css";
+import PaymentModal from "../components/order/PaymentModal";
 
 export default function Checkout() {
+  const getCurrentUser = () => {
+    try {
+      const userStr = localStorage.getItem("currentUser");
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      return null;
+    }
+  };
+  
   const navTo = useNavigate();
+  const currentUser = getCurrentUser();
 
   // LIST
   const [productList, setProductList] = useState([]);
   const [checkoutList, setCheckoutList] = useState([]);
   const [categoryList, setCategoryList] = useState([]);
+  const [promotionList, setPromotionList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("Tất cả");
+  const [submitting, setSubmitting] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(-1);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [searchText, setSearchText] = useState("");
 
   // CUSTOMER
   const [customerPhone, setCustomerPhone] = useState("");
-  const [customerMsg, setCustomerMsg] = useState("");
   const [customer, setCustomer] = useState(null);
-  const [phoneSearch, setPhoneSearch] = useState("");
-
+  const [customerMessage, setCustomerMessage] = useState("");
 
   // PROMOTION
   const [promoCode, setPromoCode] = useState("");
@@ -29,9 +40,10 @@ export default function Checkout() {
   const [discountValue, setDiscountValue] = useState(0);
   const [appliedPromotion, setAppliedPromotion] = useState(null);
 
-  // PAYMENT
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  // Payment method selection
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
+  const checkoutListRef = useRef(null);
 
   // -----------------------------------------------------------
   // LOAD DATA
@@ -48,24 +60,30 @@ export default function Checkout() {
       setCategoryList(category.data)
     );
 
+    axios.get("/api/promotion").then(promotion =>
+      setPromotionList(promotion.data)
+    );
+
     document.title = "Trang thanh toán";
     setLoading(false);
   }, [loading]);
+
+  useEffect(() => {
+    try {
+      checkoutListRef.current.scrollTo(0, checkoutListRef.current.scrollHeight);
+    }
+    catch { }
+  }, [checkoutList])
 
 
   // -----------------------------------------------------------
   // FILTER PRODUCTS BY CATEGORY
   // -----------------------------------------------------------
-  const getProductByCategoryName = (categoryName) => {
-    setActiveCategory(categoryName);
-
-    if (categoryName === "Tất cả") {
-      setFilteredProducts(productList);
-    } else {
-      setFilteredProducts(
-        productList.filter((p) => p.category.categoryName === categoryName)
-      );
-    }
+  const getProductByCategoryId = (categoryId) => {
+    setActiveCategory(categoryId);
+    
+    if (categoryId == -1) setFilteredProducts(productList);
+    else axios.get(`/api/product/category/${categoryId}`).then(res => setFilteredProducts(res.data));
   };
 
 
@@ -75,19 +93,8 @@ export default function Checkout() {
   function handleSearch(value) {
     setSearchText(value);
     const keyword = value.trim().toLowerCase();
-
-    if (!keyword) {
-      setFilteredProducts(productList);
-      return;
-    }
-
-    const filtered = productList.filter(
-      (p) =>
-        p.productName.toLowerCase().includes(keyword) ||
-        p.barcode.toLowerCase().includes(keyword)
-    );
-
-    setFilteredProducts(filtered);
+    axios.get(`/api/product?search=${keyword}`)
+      .then(response => setFilteredProducts(response.data));
   }
 
 
@@ -120,6 +127,7 @@ export default function Checkout() {
           productName: product.productName,
           price: product.price,
           quantity: 1,
+          imageUrl: product.imageUrl
         },
       ]);
     }
@@ -129,8 +137,6 @@ export default function Checkout() {
     const item = checkoutList.find(i => i.productId === productId);
     return item ? item.quantity : 0;
   }
-
-
 
   // -----------------------------------------------------------
   // UPDATE CART
@@ -153,7 +159,6 @@ export default function Checkout() {
     );
   }
 
-
   function handleDecrease(id) {
     setCheckoutList((prev) =>
       prev
@@ -174,52 +179,53 @@ export default function Checkout() {
   // -----------------------------------------------------------
   // CUSTOMER SEARCH API
   // -----------------------------------------------------------
-  async function searchCustomerByPhone() {
-    const phone = customerPhone.trim();
+  function checkPhone(val) {
+    let msg = "";
+    if (!val.trim()) msg = "Vui lòng nhập số điện thoại."
+    else if (!/^\d{10,11}$/.test(val)) msg = "SĐT chỉ chứa số (10–11 chữ số).";
 
-    if (!phone) {
+    setCustomerMessage(msg);
+
+    return (msg) ? false : true;
+  }
+
+  async function searchCustomerByPhone(val) {
+    setCustomerPhone(val);
+
+    if (!checkPhone(val)) {
       setCustomer(null);
-      setCustomerMsg("Vui lòng nhập số điện thoại.");
       return;
     }
 
     try {
-      const res = await axios.get(`/api/customer/search`, {
-        params: { phone }
-      });
-
-      setCustomer(res.data);
-
-      if (res.data.isGuest) {
-        setCustomerMsg("Khách vãng lai");
-      } else {
-        setCustomerMsg("Đã tìm thấy khách hàng.");
-        console.log("Khach hang: " + customer);
-      }
+      const res = await axios.get(`/api/customer/phone/${val}`);
+      const customer = res.data;
+      setCustomer(customer);
     } catch (error) {
       console.error(error);
       setCustomer(null);
-      setCustomerMsg("Không thể tìm khách hàng.");
+      setCustomerMessage("Không thể tìm khách hàng.");
     }
   }
-
-
 
   // -----------------------------------------------------------
   // APPLY PROMOTION
   // -----------------------------------------------------------
-  async function handleApplyPromo() {
-    const code = promoCode.trim();
-    if (!code) {
-      setPromoMessage("Vui lòng nhập mã khuyến mãi");
-      return;
-    }
-
+  async function handleApplyPromo(code) {
+    setPromoCode(code);
+    
     const subtotal = checkoutList.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0
     );
 
+    if (code === "") {
+      setAppliedPromotion(null);
+      setDiscountValue(0);
+      setPromoMessage("");
+      return;
+    }
+    
     try {
       const res = await axios.get(`/api/promotion/code/${code}`, {
         params: { orderAmount: subtotal },
@@ -245,14 +251,12 @@ export default function Checkout() {
 
       setDiscountValue(discount);
       setAppliedPromotion(data);
-
-      setPromoMessage("Áp dụng mã khuyến mãi thành công!");
+      setPromoMessage("");
     } catch (error) {
       setPromoMessage("Không thể áp dụng mã khuyến mãi.");
       setAppliedPromotion(null);
       setDiscountValue(0);
     }
-    console.log("Applied Promotion: ", appliedPromotion);
   }
 
 
@@ -260,6 +264,7 @@ export default function Checkout() {
   // AUTO UPDATE DISCOUNT WHEN CART CHANGES
   // -----------------------------------------------------------
   useEffect(() => {
+    handleApplyPromo(promoCode);
     if (!appliedPromotion) return;
 
     const subtotal = checkoutList.reduce(
@@ -297,71 +302,119 @@ export default function Checkout() {
   // -----------------------------------------------------------
   // PAYMENT WITH CASH
   // -----------------------------------------------------------
-  async function handleCashPayment() {
+  const handleSubmit = async () => {
+    if (!checkPhone(customerPhone)) return;
+
     if (checkoutList.length === 0) {
       alert("Giỏ hàng đang trống!");
       return;
     }
 
-    if (!customer) {
-      alert("Vui lòng chọn hoặc tìm khách hàng trước khi thanh toán!");
-      return;
-    }
+    setShowPaymentModal(true);
+  }
+
+  const handleOrderSubmit = async (paymentMethod) => {
+    setShowPaymentModal(false);
+    setSubmitting(true);
 
     try {
-      const payload = {
-        customerId: customer.customerId || null,
-        items: checkoutList.map(item => ({
+      // Prepare order data
+      const orderData = {
+        customerId: customer.customerId,
+        userId: parseInt(currentUser.userId),
+        promoId: appliedPromotion ? appliedPromotion.promoId : null,
+        orderDate: new Date().toISOString(),
+        status: "pending",
+        totalAmount: total,
+        discountAmount: discountValue,
+        orderItems: checkoutList.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
           price: item.price
         })),
-        promotionId: appliedPromotion ? appliedPromotion.promoId : null,
-        discountValue: discountValue,
-        totalAmount: total
       };
 
-      console.log("Payload thanh toán tiền mặt: ", payload);
+      console.log("Dữ liệu đơn hàng chuẩn bị gửi:", orderData);
+      console.log("Phương thức thanh toán:", paymentMethod);
 
-      const res = await axios.post("/api/payment/cash", payload);
-
-      alert("Thanh toán tiền mặt thành công!");
-
-      // Reset giỏ hàng sau thanh toán
-      setCheckoutList([]);
-      setCustomer(null);
-      setPromoCode("");
-      setAppliedPromotion(null);
-      setDiscountValue(0);
-      setCustomerPhone("");
-      setPromoMessage("");
-
-      axios.get("/api/product").then((response) => {
-        setProductList(response.data);
-        setFilteredProducts(response.data);
-      });
-      // Điều hướng sang trang hóa đơn nếu muốn
-      // navTo(`/order/${res.data.orderId}`);
-
-    } catch (err) {
-      console.error(err);
-      alert("Thanh toán thất bại! " + err.response?.data?.message || "");
+      // Call API to create order
+      const response = await axios.post("/api/order", orderData);
+      const createdOrderId = response.data?.orderId;
+      
+      if (paymentMethod === "cash") {
+        // Gọi API cập nhật status thành "paid" cho thanh toán tiền mặt
+        try {
+          await axios.put(`/api/order/${createdOrderId}/status`, { status: "paid" });
+          alert("Tạo đơn hàng và thanh toán tiền mặt thành công!");
+        } catch (statusError) {
+          console.error("Lỗi cập nhật status:", statusError);
+          alert("Tạo đơn hàng thành công nhưng không thể cập nhật trạng thái thanh toán!");
+        }
+        navTo(0);
+      } else if (paymentMethod === "online") {
+        // Gửi POST form để trình duyệt follow Redirect từ backend (không dùng axios)
+        try {
+          const fields = {
+            OrderId: (response.data?.orderId ?? Date.now()).toString(),
+            Amount: Math.round(total).toString(),
+            FullName: customer?.customerName || currentUser?.fullName || "Khách hàng",
+            OrderInfo: `Thanh toán đơn hàng #${response.data?.orderId || Date.now()}`
+          };    
+          // Tạo form và submit để chuyển trang
+          const form = document.createElement("form");
+          form.method = "POST";
+          form.action = "/api/payment/CreatePaymentMomo";
+          form.acceptCharset = "UTF-8";
+          Object.entries(fields).forEach(([name, value]) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = name;
+            input.value = String(value ?? "");
+            form.appendChild(input);
+          });
+          document.body.appendChild(form);
+          form.submit();
+          // Không đặt navTo sau submit vì trình duyệt sẽ chuyển trang
+        } catch (momoError) {
+          console.error("Lỗi khi submit form MoMo:", momoError);
+          alert("Lỗi thanh toán MoMo: " + (momoError.response?.data?.message || momoError.message));
+          navTo(0);
+        }
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Order data sent:", orderData);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error ||
+                          error.message ||
+                          "Không thể tạo đơn hàng. Vui lòng thử lại!";
+      alert(`Lỗi: ${errorMessage}`);
+    } finally {
+      setSubmitting(false);
     }
   }
-
-
 
   // -----------------------------------------------------------
   // RENDER
   // -----------------------------------------------------------
-  return loading ? (
-    <></>
-  ) : (
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Đang tải...</span>
+        </div>
+        <p className="mt-3">Đang tải form thanh toán...</p>
+      </div>
+    );
+  }
+
+  return (
     <>
       <div id="container">
         {/* LEFT PANEL */}
         <div id="left">
-          <h1 className="fw-bold h3">Sản phẩm</h1>
+          <h1 className="fw-bold h3">Tất cả sản phẩm</h1>
 
           {/* SEARCH PRODUCT */}
           <div className="input-group mb-2">
@@ -380,11 +433,11 @@ export default function Checkout() {
           {/* CATEGORY FILTER */}
           <div className="btn-group overflow-y-auto my-2">
             <button
-              className={`btn ${activeCategory === "Tất cả"
+              className={`btn ${activeCategory === -1
                 ? "btn-secondary"
                 : "btn-outline-secondary"
                 }`}
-              onClick={() => getProductByCategoryName("Tất cả")}
+              onClick={() => getProductByCategoryId(-1)}
             >
               Tất cả
             </button>
@@ -392,11 +445,11 @@ export default function Checkout() {
             {categoryList.map((c) => (
               <button
                 key={`cat-${c.categoryId}`}
-                className={`btn ${activeCategory === c.categoryName
+                className={`btn ${activeCategory === c.categoryId
                   ? "btn-secondary"
                   : "btn-outline-secondary"
                   }`}
-                onClick={() => getProductByCategoryName(c.categoryName)}
+                onClick={() => getProductByCategoryId(c.categoryId)}
               >
                 {c.categoryName}
               </button>
@@ -404,37 +457,40 @@ export default function Checkout() {
           </div>
 
           {/* PRODUCT LIST */}
-          <div id="product-list">
-            {filteredProducts.map((p) => (
-              <button
-                key={p.barcode}
-                className="product-box"
-                onClick={() => handleAddToCart(p)}
-                disabled={getCartQuantity(p.productId) >= p.totalQuantity}
-                style={{
-                  opacity: getCartQuantity(p.productId) >= p.totalQuantity ? 0.5 : 1,
-                  cursor: getCartQuantity(p.productId) >= p.totalQuantity ? "not-allowed" : "pointer"
-                }}
-              >
+          {
+            filteredProducts.length === 0 ? <p className="text-muted text-center">Không có sản phẩm cần tìm</p> :            
+            <div id="product-list">
+            {
+              filteredProducts.map((p) => (
+                <button
+                  key={p.barcode}
+                  className="product-box"
+                  onClick={() => handleAddToCart(p)}
+                  disabled={getCartQuantity(p.productId) >= p.totalQuantity}
+                  style={{
+                    opacity: getCartQuantity(p.productId) >= p.totalQuantity ? 0.5 : 1,
+                    cursor: getCartQuantity(p.productId) >= p.totalQuantity ? "not-allowed" : "pointer"
+                  }}
+                >
 
-                <img
-                  src={`/images/product_img/${p.productId}.png`}
-                  alt={p.productName}
-                  className="product-preview"
-                  onError={(e) =>
-                    (e.target.src = "/images/product_img/err.png")
-                  }
-                />
-                <p className="my-2 h5 fw-normal">{p.productName}</p>
-                <i className="fw-bold my-1 d-block">{toVNPrice(p.price)}</i>
-                <p className="mb-0">Tồn kho: {p.totalQuantity}</p>
-              </button>
-            ))}
-          </div>
+                  <img
+                    src={`${backendUrl}${p.imageUrl}`}
+                    onError={e => e.target.src = `${backendUrl}/images/products/error.png`}
+                    alt={p.productName}
+                    className="product-preview"
+                  />
+                  <p className="my-2 h5 fw-normal">{p.productName}</p>
+                  <i className="fw-bold my-1 d-block">{toVNPrice(p.price)}</i>
+                  <p className="mb-0">Tồn kho: {p.quantity}</p>
+                </button>
+              ))
+            }
+            </div>
+          }
         </div>
 
         {/* RIGHT PANEL */}
-        <div id="right">
+        <form id="right" onSubmit={e => e.preventDefault()}>
           <h1 className="fw-bold h3">Đơn hàng hiện tại</h1>
 
           {/* CUSTOMER SEARCH */}
@@ -443,24 +499,17 @@ export default function Checkout() {
               <i className="bi bi-phone"></i>
             </span>
 
-            <input
+            <input            
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               className="form-control"
               placeholder="Nhập số điện thoại của khách hàng"
               value={customerPhone}
-              onChange={(e) => {
-                setCustomerPhone(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  searchCustomerByPhone();
-                }
-              }}
+              onChange={e => searchCustomerByPhone(e.target.value)}
+              required
             />
-            <button className="btn btn-primary" onClick={searchCustomerByPhone}>
-              Tìm
-            </button>
           </div>
-
 
           {customer && (
             <div className="mt-3 p-2 mb-3 border rounded bg-light">
@@ -480,13 +529,12 @@ export default function Checkout() {
             </div>
           )}
 
-          {/* {customerMsg && <p className="mt-3 text-primary">{customerMsg}</p>} */}
-
+          {customerMessage && <p className="mt-3 text-danger">{customerMessage}</p>}
 
           {/* CART LIST */}
-          <div id="checkout-list">
+          <div className="checkout-list" ref={checkoutListRef}>
             {checkoutList.length === 0 ? (
-              <p className="text-muted fst-italic">Chưa có sản phẩm nào</p>
+              <p className="text-muted fst-italic text-center mt-2">Chưa có sản phẩm nào!</p>
             ) : (
               checkoutList.map((item) => (
                 <div
@@ -494,12 +542,10 @@ export default function Checkout() {
                   className="d-flex gap-1 align-items-start my-2 flex-grow-1"
                 >
                   <img
-                    src={`/images/product_img/${item.productId}.png`}
+                    src={`${backendUrl}${item.imageUrl}`}
+                    onError={e => e.target.src = `${backendUrl}/images/products/error.png`}
                     alt={item.productName}
                     className="product-preview"
-                    onError={(e) =>
-                      (e.target.src = "/images/product_img/err.png")
-                    }
                   />
 
                   <div className="flex-grow-1">
@@ -548,112 +594,63 @@ export default function Checkout() {
           </div>
 
           {/* PROMOTION */}
-          <div className="input-group mt-2">
-            <input
+          <div className="mt-2">
+            <label>Chọn mã khuyến mãi:</label>
+            <select
               className="form-control"
-              placeholder="Nhập mã khuyến mãi"
               value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value)}
-            />
-            <button className="btn btn-primary" onClick={handleApplyPromo}>
-              Áp dụng
-            </button>
+              onChange={e => handleApplyPromo(e.target.value)}
+            >
+              <option value="">Không áp dụng khuyến mãi</option>
+              {
+                promotionList.map(pro =>
+                  <option key={pro.promoCode} value={pro.promoCode}>{pro.promoCode}</option>
+                )
+              }
+            </select>
           </div>
 
-          {promoMessage && (
-            <p
-              className={`mt-2 ${appliedPromotion ? "text-success" : "text-danger"
-                }`}
-            >
-              {promoMessage}
-            </p>
-          )}
-
-          {appliedPromotion && (
-            <button
-              className="btn btn-outline-danger mt-1 w-100"
-              onClick={() => {
-                setAppliedPromotion(null);
-                setDiscountValue(0);
-                setPromoMessage("Đã xóa mã khuyến mãi.");
-                setPromoCode("");
-              }}
-            >
-              Xóa mã khuyến mãi
-            </button>
-          )}
+          {promoMessage && <p className="mt-2 text-danger">{promoMessage}</p>}
 
           {/* TOTAL */}
           <table className="my-2 bg-white w-100">
             <tbody className="border-bottom border-secondary-subtle">
               <tr>
-                <td className="p-2">Tổng phụ</td>
+                <td className="p-2">Tạm thu:</td>
                 <td className="p-2 text-end">{toVNPrice(subtotal)}</td>
               </tr>
               <tr>
-                <td className="p-2">Khuyến mãi</td>
+                <td className="p-2">Khuyến mãi:</td>
                 <td className="p-2 text-end">-{toVNPrice(discountValue)}</td>
               </tr>
             </tbody>
             <tfoot>
               <tr>
-                <th className="p-2">Tổng cộng</th>
+                <th className="p-2">Tổng cộng:</th>
                 <th className="p-2 text-end">{toVNPrice(total)}</th>
               </tr>
             </tfoot>
           </table>
-
-          {/* PAYMENT METHOD */}
-          {/* <div className="mt-3 mb-2 border p-3 rounded">
-            <h5 className="fw-semibold mb-2">Chọn phương thức thanh toán:</h5>
-
-            <div className="form-check">
-              <input
-                className="form-check-input"
-                type="radio"
-                id="pay-cash"
-                name="payment"
-                value="cash"
-                checked={paymentMethod === "cash"}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              />
-              <label className="form-check-label" htmlFor="pay-cash">
-                Thanh toán tiền mặt
-              </label>
-            </div>
-
-            <div className="form-check">
-              <input
-                className="form-check-input"
-                type="radio"
-                id="pay-vnpay"
-                name="payment"
-                value="vnpay"
-                checked={paymentMethod === "vnpay"}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              />
-              <label className="form-check-label" htmlFor="pay-vnpay">
-                Thanh toán qua VNPAY
-              </label>
-            </div>
-          </div> */}
-
-          {/* PAY BUTTON */}
+          
           <button
+            type="submit"
             className="btn btn-primary w-100"
-            onClick={() => {
-              // if (paymentMethod === "cash") {
-              handleCashPayment();
-              // } else {
-              //   alert("VNPAY bạn đã có API rồi, hãy gọi API VNPAY ở đây.");
-              // }
-            }}
+            disabled={submitting}
+            onClick={() => handleSubmit()}
           >
-            <i className="bi bi-cart-fill"></i> Thanh toán bằng tiền mặt
+            <i className="bi bi-cart-fill"></i>  {submitting ? "Đang thanh toán..." : "Thanh toán"}
           </button>
 
-        </div>
+        </form>
       </div>
+
+      <PaymentModal
+        showPaymentModal={showPaymentModal}
+        setShowPaymentModal={setShowPaymentModal}
+        handleOrderSubmit={handleOrderSubmit}
+        submitting={submitting}
+        total={total}
+      />
     </>
   );
 }

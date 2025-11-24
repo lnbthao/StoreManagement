@@ -1,99 +1,87 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
-using Microsoft.AspNetCore.Authorization; // nếu cần
 
 namespace StoreManagement.Server.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-// [Authorize] // ← Tạm bỏ nếu không cần login
-public class CategoryController : ControllerBase // ← Dùng ControllerBase
+[Route("/api/[controller]")]
+public class CategoryController : Controller
 {
-    private readonly ILogger<CategoryController> _logger;
-    private readonly StoreManagementContext _dbContext;
+    private readonly StoreManagementContext _context;
 
-    public CategoryController(ILogger<CategoryController> logger, StoreManagementContext dbContext)
+    public CategoryController(StoreManagementContext context)
     {
-        _logger = logger;
-        _dbContext = dbContext;
+        _context = context;
     }
 
-    // GET: api/category
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories([FromQuery] string? name)
+    public async Task<List<Category>> GetCategories(string? name)
     {
-        IQueryable<Category> query = _dbContext.Categories.Where(c => c.IsActive); // Chỉ lấy active
-
-        if (!string.IsNullOrWhiteSpace(name))
-        {
-            query = query.Where(c => EF.Functions.Like(c.CategoryName, $"%{name}%"));
-        }
-
-        var categories = await query
-            .Select(c => new Category
-            {
-                CategoryId = c.CategoryId,
-                CategoryName = c.CategoryName,
-                IsActive = c.IsActive
-                // Không trả các field nhạy cảm như CreatedAt nếu không cần
-            })
-            .ToListAsync();
-
-        return Ok(categories); // ← Trả JSON đúng chuẩn
+        if (!string.IsNullOrEmpty(name))
+            return await _context.Categories.Where(c => EF.Functions.Like(c.CategoryName, $"%{name}%")).ToListAsync();
+        return await _context.Categories.ToListAsync();
     }
 
-    // GET: api/category/5
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<Category>> GetCategoryById(int id)
+    [HttpGet("{id}")]
+    public async Task<Category?> GetCategoryById(int id)
     {
-        var category = await _dbContext.Categories
-            .FirstOrDefaultAsync(c => c.CategoryId == id && c.IsActive);
-
-        if (category == null) return NotFound();
-
-        return Ok(category);
+        return await _context.Categories.FirstOrDefaultAsync(c => c.CategoryId == id);
     }
 
-    // POST: api/category
     [HttpPost]
-    public async Task<ActionResult<Category>> AddCategory([FromBody] Category c)
+    public async Task<IActionResult> AddCategory(Category c)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        // Log dữ liệu nhận được
+        Console.WriteLine("=== AddCategory called ===");
+        Console.WriteLine($"CategoryId: {c.CategoryId}");
+        Console.WriteLine($"CategoryName: {c.CategoryName}");
+        Console.WriteLine($"IsActive: {c.IsActive}");
 
-        c.IsActive = true;
-        _dbContext.Categories.Add(c);
-        await _dbContext.SaveChangesAsync();
+        _context.Categories.Add(c);
+        var result = await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetCategoryById), new { id = c.CategoryId }, c);
+        Console.WriteLine(result > 0
+            ? "Category added successfully!"
+            : "Failed to add category.");
+
+        return result > 0 ? StatusCode(201) : StatusCode(400);
     }
 
-    // PUT: api/category/5
-    [HttpPut("{id:int}")]
+    [HttpPut("{id}")]
     public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category c)
     {
-        if (id != c.CategoryId) return BadRequest("ID không khớp");
-
-        var existing = await _dbContext.Categories.FindAsync(id);
-        if (existing == null) return NotFound();
+        var existing = await _context.Categories.FindAsync(id);
+        if (existing == null)
+            return NotFound($"Category with ID {id} not found.");
 
         existing.CategoryName = c.CategoryName;
-        // existing.IsActive = c.IsActive; // nếu cho phép thay đổi
-
-        await _dbContext.SaveChangesAsync();
-        return NoContent();
+        existing.IsActive = c.IsActive;
+        await _context.SaveChangesAsync();
+        return Ok(existing);
     }
 
-    // DELETE: api/category/5 (soft delete)
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        var category = await _dbContext.Categories.FindAsync(id);
-        if (category == null) return NotFound();
+        var existing = await _context.Categories.FindAsync(id);
+        if (existing == null)
+            return NotFound($"Category with ID {id} not found.");
 
-        category.IsActive = false;
-        await _dbContext.SaveChangesAsync();
+        existing.IsActive = false;
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
 
-        return NoContent();
+    // PUT: api/Category/{id}/restore -> phục hồi
+    [HttpPut("{id:int}/restore")]
+    public async Task<IActionResult> RestoreCategory(int id)
+    {
+        var Category = await _context.Categories.FindAsync(id);
+        if (Category == null) return NotFound();
+
+        Category.IsActive = true;
+        await _context.SaveChangesAsync();
+        return Ok();
     }
 }

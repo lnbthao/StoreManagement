@@ -173,6 +173,7 @@ export default function AddUpPromotion({ status = false }) {
             className={`form-control ${errors.promoCode ? "is-invalid" : ""}`}
             value={promo.promoCode}
             onChange={setField("promoCode")}
+            placeholder="Nhập mã khuyến mãi"
           />
           <small className="text-danger">{errors.promoCode}</small>
         </div>
@@ -183,6 +184,7 @@ export default function AddUpPromotion({ status = false }) {
             className={`form-control ${errors.description ? "is-invalid" : ""}`}
             value={promo.description}
             onChange={setField("description")}
+            placeholder="Nhập mô tả"
           />
           <small className="text-danger">{errors.description}</small>
         </div>

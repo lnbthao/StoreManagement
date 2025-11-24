@@ -11,7 +11,7 @@ export default function AddUpCustomer({ status = false }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [customer, setCustomer] = useState({
-    name: "",
+    customerName: "",
     phone: "",
     email: "",
     address: "",
@@ -19,7 +19,7 @@ export default function AddUpCustomer({ status = false }) {
 
   // lỗi theo field
   const [errors, setErrors] = useState({
-    name: "",
+    customerName: "",
     phone: "",
     email: "",
     address: "",
@@ -27,12 +27,12 @@ export default function AddUpCustomer({ status = false }) {
 
   const validateField = (key, val) => {
     let msg = "";
-    if (key === "name") {
+    if (key === "customerName") {
       if (!val.trim()) msg = "Vui lòng nhập tên khách hàng.";
     }
     if (key === "phone") {
       if (!val.trim()) msg = "Vui lòng nhập số điện thoại.";
-      else if (!/^\d{9,11}$/.test(val)) msg = "SĐT chỉ chứa số (9–11 chữ số).";
+      else if (!/^\d{10,11}$/.test(val)) msg = "SĐT chỉ chứa số (10–11 chữ số).";
     }
 
     if (key === "email") {
@@ -48,7 +48,7 @@ export default function AddUpCustomer({ status = false }) {
   };
 
   const validateAll = () => {
-    const m1 = validateField("name", customer.name);
+    const m1 = validateField("customerName", customer.customerName);
     const m2 = validateField("phone", customer.phone);
     const m3 = validateField("email", customer.email);
     const m4 = validateField("address", customer.address);
@@ -69,7 +69,7 @@ export default function AddUpCustomer({ status = false }) {
   async function fetchData(id) {
     try {
       const { data } = await axios.get(`/api/customer/${id}`);
-      setCustomer({ name: data.name, phone: data.phone, email: data.email, address: data.address });
+      setCustomer({ customerName: data.customerName, phone: data.phone, email: data.email, address: data.address });
     } catch (e) {
       console.error(e);
       alert("Không tải được dữ liệu khách hàng.");
@@ -128,19 +128,19 @@ export default function AddUpCustomer({ status = false }) {
 
       <form onSubmit={handleSubmit} noValidate>
         <div>
-          <label htmlFor="cus-name" className="d-block mb-1">
+          <label htmlFor="cus-customerName" className="d-block mb-1">
             Tên khách hàng:
           </label>
           <input
             id="cus-name"
-            className={`form-control ${errors.name ? "is-invalid" : ""} mb-1`}
+            className={`form-control ${errors.customerName ? "is-invalid" : ""} mb-1`}
             placeholder="Nhập tên khách hàng"
             type="text"
-            value={customer.name}
-            onChange={handleChange("name")}
-            onBlur={handleBlur("name")}
+            value={customer.customerName}
+            onChange={handleChange("customerName")}
+            onBlur={handleBlur("customerName")}
           />
-          {errors.name && <small className="text-danger">{errors.name}</small>}
+          {errors.customerName && <small className="text-danger">{errors.customerName}</small>}
         </div>
 
         <div className="mt-3">

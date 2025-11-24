@@ -4,6 +4,7 @@ import { Eye, Funnel, PencilSquare, PlusCircleFill, Trash3, ArrowClockwise } fro
 import { useNavigate } from "react-router-dom";
 import UserViewModal from "./UserViewModal";
 import UserFilterModal from "./UserFilterModal";
+import { toVNDateTime } from "../util";
 
 export default function UserManagement() {
   const navTo = useNavigate();
@@ -186,33 +187,43 @@ export default function UserManagement() {
                 <td className="text-center">{u.username}</td>
                 <td className="text-center">{u.fullName}</td>
                 <td className="text-center">{displayRole(u.role)}</td>
+                <td className="text-center">{u.createdAt ? toVNDateTime(u.createdAt) : ""}</td>
                 <td className="text-center">
-                  {u.createdAt
-                    ? new Date(u.createdAt).toLocaleString("vi-VN")
-                    : ""}
-                </td>
-                <td className="text-center">
-                  <button
-                    className="btn p-0 me-2 border border-0"
-                    title="Xem chi tiết"
-                    onClick={() => openUserModal(u)}
-                  >
-                    <Eye size={22} color="darkcyan" />
-                  </button>
-                  <button
-                    className="btn p-0 me-2 border border-0"
-                    onClick={() => navTo(`/admin/user/edit/${u.userId}`)}
-                    title="Sửa"
-                  >
-                    <PencilSquare size={22} color="darkblue" />
-                  </button>
-                  <button
-                    className="btn p-0 border border-0"
-                    title="Xoá"
-                    onClick={() => handleDelete(u)}
-                  >
-                    <Trash3 size={22} color="crimson" />
-                  </button>
+                {
+                  u.isActive ? (
+                    <>
+                      <button
+                        className="btn p-0 me-2 border border-0"
+                        title="Xem chi tiết"
+                        onClick={() => openUserModal(u)}
+                      >
+                        <Eye size={22} color="darkcyan" />
+                      </button>
+                      <button
+                        className="btn p-0 me-2 border border-0"
+                        onClick={() => navTo(`/admin/user/edit/${u.userId}`)}
+                        title="Sửa"
+                      >
+                        <PencilSquare size={22} color="darkblue" />
+                      </button>
+                      <button
+                        className="btn p-0 border border-0"
+                        title="Xoá"
+                        onClick={() => handleDelete(u)}
+                      >
+                        <Trash3 size={22} color="crimson" />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="btn p-0 me-2 border border-0"
+                      title="Xem chi tiết"
+                      onClick={() => openUserModal(u)}
+                    >
+                      <Eye size={22} color="darkcyan" />
+                    </button>
+                  )
+                }
                 </td>
               </tr>
             ))

@@ -27,7 +27,7 @@ export default function CustomerViewModal({ open, customer, onClose }) {
 
             <div className="modal-body">
               <div className="mb-2">
-                <strong>Tên KH:</strong> {c.name || "-"}
+                <strong>Tên KH:</strong> {c.customerName || "-"}
               </div>
               <div className="mb-2">
                 <strong>Điện thoại:</strong> {splitPhoneNumber(c.phone) || "-"}

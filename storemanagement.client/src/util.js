@@ -1,3 +1,5 @@
+const backendUrl = "https://localhost:7064";
+
 function toVNNumber(number) {
   return Number(number).toLocaleString("vi-VN");
 }
@@ -22,4 +24,4 @@ function splitPhoneNumber(phoneNumber) {
   return first + " " + second + " " + third;
 }
 
-export { toVNNumber, toVNPrice, toVNDate, toVNDateTime, splitPhoneNumber }
+export { backendUrl, toVNNumber, toVNPrice, toVNDate, toVNDateTime, splitPhoneNumber }

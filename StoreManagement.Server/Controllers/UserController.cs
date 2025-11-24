@@ -1,11 +1,11 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using BCrypt.Net;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using StoreManagement.Server.Models;
 
 namespace StoreManagement.Server.Controllers;
@@ -28,16 +28,20 @@ public class UserController : Controller
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            return BadRequest(new { message = "Thiếu thông tin đăng nhập" });
-
+        /*
+         Không cần kiểm tra khoảng trắng, do bên frontend đảm trách rồi.
+         Ở đây chỉ kiểm tra thông tin đăng nhập thôi.
+        */
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+
         if (user is null || !user.IsActive)
-            return Unauthorized(new { message = "Tài khoản không tồn tại hoặc bị khóa" });
+            return Unauthorized(new { message = "Tài khoản không tồn tại hoặc bị khóa!", input = "username" });
 
+        // Chỗ này username đúng rồi, chỉ cần check password
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-            return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
+            return Unauthorized(new { message = "Sai mật khẩu!", input = "password" });
 
+        // Generate Jwt Token và trả về
         var token = GenerateJwtToken(user);
         return Ok(new { token, user = new { user.UserId, user.Username, user.FullName, user.Role } });
     }

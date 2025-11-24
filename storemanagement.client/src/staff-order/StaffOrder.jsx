@@ -61,7 +61,16 @@ export default function StaffOrder() {
     setSearch(search.trim());
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Đang tải...</span>
+        </div>
+        <p className="mt-3">Đang tải danh sách đơn hàng...</p>
+      </div>
+    );
+  }
 
   const keyword = search.toLowerCase();
 
@@ -75,9 +84,12 @@ export default function StaffOrder() {
   });
 
   return (
-    <>
+    <section className="h-dvh overflow-auto">
       <div className="d-flex column-gap-3 mb-3">
-        <form className="col d-flex" onSubmit={handleSubmitSearch}>
+        <form className="input-group" onSubmit={handleSubmitSearch}>
+          <span className="input-group-text">
+            <i className="bi bi-search"></i>
+          </span>
           <input
             type="search"
             placeholder="Tìm theo ID đơn hàng hoặc nhân viên"
@@ -85,10 +97,6 @@ export default function StaffOrder() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-
-          <button type="submit" className="btn btn-primary ms-2">
-            <Search size={20} />
-          </button>
         </form>
       </div>
 
@@ -98,6 +106,7 @@ export default function StaffOrder() {
             <th>ID đơn hàng</th>
             <th>Ngày tạo</th>
             <th>Nhân viên</th>
+            <th>Khách hàng</th>
             <th>Giảm giá</th>
             <th>Tổng tiền</th>
             <th>Trạng thái</th>
@@ -108,7 +117,7 @@ export default function StaffOrder() {
         <tbody>
           {filteredList.length === 0 ? (
             <tr>
-              <td colSpan={7} className="text-center fst-italic">
+              <td colSpan={8} className="text-center fst-italic">
                 Không có đơn hàng!
               </td>
             </tr>
@@ -121,7 +130,13 @@ export default function StaffOrder() {
 
                 <td className="text-center">
                   {o.user
-                    ? `${o.user.userId} - ${o.user.fullName}`
+                    ? `${o.user.id} - ${o.user.name}`
+                    : "Không có"}
+                </td>
+
+                <td className="text-center">
+                        {o.user
+                            ? (!o.customer ? "Khách vãng lai" : `${o.customer.id} - ${o.customer.name}`)
                     : "Không có"}
                 </td>
 
@@ -136,9 +151,11 @@ export default function StaffOrder() {
                     onClick={() => openOrderModal(o)}
                   >
                     <Eye size={22} color="blue" />
-                  </button>
+                        </button>
+
                 </td>
-              </tr>
+                </tr>
+
             ))
           )}
         </tbody>
@@ -149,6 +166,6 @@ export default function StaffOrder() {
         order={selectedOrder}
         onClose={closeOrderModal}
       />
-    </>
+    </section>
   );
 }

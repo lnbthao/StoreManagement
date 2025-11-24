@@ -7,8 +7,8 @@ main#staff {
   div#product-list {
     display: grid;
     gap: 1rem 1rem;
-    height: calc(100dvh - 240px);
-    overflow: scroll;
+    max-height: calc(100dvh - 240px);
+    overflow: auto;
 
     .product-box {
       border: 1px solid lightgray;
@@ -22,8 +22,6 @@ main#staff {
         background-color: rgb(240, 240, 240);
       }
     }
-
-
   }
 
   .product-preview {
@@ -34,6 +32,9 @@ main#staff {
   }
 
   #right {
+    height: calc(100dvh - 96px);
+    overflow: auto;
+
     .product-preview {
       height: 70px;
       width: 70px;
@@ -52,8 +53,8 @@ main#staff {
       text-align: center;
     }
 
-    #checkout-list {
-      height: calc(100dvh - 400px);
+    .checkout-list {
+      height: calc(100dvh - 424px);
       overflow: auto;
     }
   }

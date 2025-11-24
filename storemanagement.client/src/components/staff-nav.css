@@ -1,4 +1,8 @@
 main#staff header {
+  background-image: url("/images/pattern_h.png");
+  background-size: cover;
+  background-position: center;
+
   a {
     cursor: pointer!important;
 

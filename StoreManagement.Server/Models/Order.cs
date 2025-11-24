@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace StoreManagement.Server.Models;
 
@@ -21,7 +20,7 @@ public partial class Order
     public decimal? TotalAmount { get; set; }
 
     public decimal? DiscountAmount { get; set; }
-    [JsonIgnore]
+
     public virtual Customer? Customer { get; set; }
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
@@ -29,6 +28,6 @@ public partial class Order
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual Promotion? Promo { get; set; }
-    [JsonIgnore]
+
     public virtual User? User { get; set; }
 }

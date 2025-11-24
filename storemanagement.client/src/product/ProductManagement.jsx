@@ -11,6 +11,7 @@ import {
 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
 import { toVNNumber, toVNPrice } from "../util";
+import { MOCK_PRODUCTS } from "../../mockData/Products";
 import ProductViewModal from "./ProductViewModal";
 import ProductFilterModal from "./ProductFilterModal";
 import InventoryModal from "./InventoryModal";
@@ -212,7 +213,7 @@ export default function ProductManagement() {
                 <input
                     type="search"
                     placeholder="Tìm tên hoặc barcode..."
-                    className="form-control flex-grow-1"
+                    className="form-control w-md-75 flex-grow-1"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />

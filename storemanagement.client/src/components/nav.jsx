@@ -15,7 +15,7 @@ const navList = [
 const SideNav = () => {
   const navTo = useNavigate();
   const pathname = useLocation().pathname;
-  
+
   // Lấy thông tin user từ localStorage
   const getCurrentUser = () => {
     try {
@@ -47,7 +47,7 @@ const SideNav = () => {
 
       <div className="d-flex p-3 align-items-center column-gap-2 cursor-default text-white">
         <img
-          src="/avatars/default.jpg"
+          src="/images/avatars/default.jpg"
           alt="avatar"
           height="48px"
           width="48px"
@@ -56,13 +56,13 @@ const SideNav = () => {
 
         <div>
           <p className="mb-1 fw-bold">{currentUser?.fullName || "Admin"}</p>
-          <a id="log-out" onClick={handleLogout} style={{ cursor: "pointer" }}>Đăng xuất</a>
+          <a id="log-out" onClick={handleLogout}>Đăng xuất</a>
         </div>
       </div>
     </header>
   );
 
-    function handleLogout() {
+  function handleLogout() {
     localStorage.removeItem("token");
     localStorage.removeItem("currentUser");
     navTo("/");

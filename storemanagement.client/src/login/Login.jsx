@@ -1,9 +1,11 @@
 import axios from "axios";
 import { useState, useEffect } from "react";
 import { Eye, EyeSlash } from "react-bootstrap-icons";
+import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
 export default function Login() {
+  const navTo = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [user, setUser] = useState({
     username: "",
@@ -38,7 +40,14 @@ export default function Login() {
     return Object.values(m).every(x => !x);
   }
 
-  useEffect(() => { document.title = "Đăng nhập | Quản lý kho hàng " }, []);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const user = JSON.parse(localStorage.getItem('currentUser'));
+      navTo(`/${user.role}`);
+    }
+    document.title = "Đăng nhập | Quản lý kho hàng "
+  }, []);
 
   return (
     <main id="login">
@@ -125,14 +134,18 @@ export default function Login() {
       if (res.status === 200 && res.data?.token) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('currentUser', JSON.stringify(res.data.user));
-        const role = res.data?.user?.role === 'admin' ? 'admin' : 'staff';
-        location.href = (`/${role}`);
+        const role = res.data?.user?.role;
+        navTo(`/${role}`);
       } else {
         alert('Đăng nhập thất bại!');
       }
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Sai thông tin đăng nhập!';
-      setErrors(e => ({ ...e, username: msg, password: msg }));
+      const errData = err?.response?.data || { message: 'Sai thông tin đăng nhập!', input: "username,password" };
+      const newError = { username: "", password: "" }
+      if (errData.input.includes("username")) newError.username = errData.message;
+      if (errData.input.includes("password")) newError.password = errData.message;
+      
+      setErrors(newError);
     }
   }
 }

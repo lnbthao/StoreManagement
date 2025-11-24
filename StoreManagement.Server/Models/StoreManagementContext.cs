@@ -66,7 +66,7 @@ public partial class StoreManagementContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp")
                 .HasColumnName("created_at");
-            entity.Property(e => e.Name)
+            entity.Property(e => e.CustomerName)
                 .HasMaxLength(100)
                 .HasColumnName("customer_name");
             entity.Property(e => e.Email)
@@ -87,26 +87,23 @@ public partial class StoreManagementContext : DbContext
             entity.ToTable("inventory");
 
             entity.HasIndex(e => e.ProductId, "product_id");
-            
+
             entity.Property(e => e.InventoryId).HasColumnName("inventory_id");
             entity.Property(e => e.ProductId).HasColumnName("product_id");
             entity.Property(e => e.Quantity)
                 .HasDefaultValueSql("'0'")
                 .HasColumnName("quantity");
-
             entity.Property(e => e.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.Product)
-                .WithMany(p => p.Inventories)
+            entity.HasOne(d => d.Product).WithMany(p => p.Inventories)
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventory_ibfk_1");
         });
-
 
         modelBuilder.Entity<Order>(entity =>
         {
@@ -232,6 +229,8 @@ public partial class StoreManagementContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp")
                 .HasColumnName("created_at");
+            entity.Property(e => e.ImageUrl)
+                .HasColumnName("image_url");
             entity.Property(e => e.IsActive)
                 .HasDefaultValueSql("'1'")
                 .HasColumnName("is_active");
