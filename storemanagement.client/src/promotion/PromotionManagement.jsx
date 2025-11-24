@@ -2,7 +2,6 @@ import axios from "axios";
 import { useState, useEffect } from "react";
 import { Eye, Search, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
-import { MOCK_PROMOTIONS } from "../../mockData/Promotion";
 import PromotionViewModal from "./PromotionViewModal";
 import { toVNDate, toVNNumber, toVNPrice } from "../util";
 
@@ -32,7 +31,7 @@ export default function PromotionManagement() {
         const data = await loadFromApi();
         setPromotionList(data);
       } catch {
-        setPromotionList(MOCK_PROMOTIONS);
+        setPromotionList([]);
       } finally {
         setLoading(false);
       }

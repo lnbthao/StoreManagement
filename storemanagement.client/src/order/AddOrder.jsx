@@ -2,7 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash, PlusCircle } from "react-bootstrap-icons";
-import { toVNPrice } from "../util";
+import { toVNPrice, toVNDate } from "../util";
 import PaymentModal from "../components/order/PaymentModal";
 
 export default function AddOrder() {
@@ -30,6 +30,13 @@ export default function AddOrder() {
   const [promotions, setPromotions] = useState([]);
   const [products, setProducts] = useState([]);
   
+  // Autocomplete states
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [promoSearch, setPromoSearch] = useState("");
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showPromoDropdown, setShowPromoDropdown] = useState(false);
+  const [selectedPromotion, setSelectedPromotion] = useState(null);
+  
   // Cart items
   const [cart, setCart] = useState([]);
   
@@ -50,7 +57,7 @@ export default function AddOrder() {
       const [customerRes, productRes, promoRes] = await Promise.all([
         axios.get("/api/customer"),
         axios.get("/api/product"),
-        axios.get("/api/promotion"),
+        axios.get("/api/promotion", { params: { availableOnly: true } }),
       ]);
       
       setCustomers(customerRes.data ?? []);
@@ -109,9 +116,11 @@ export default function AddOrder() {
             const product = products.find(
               (p) => String(p.productId) === String(updated.productId)
             );
-            if (product && updated.quantity > product.stock) {
-              alert(`Sản phẩm "${product.productName}" chỉ còn ${product.stock} sản phẩm trong kho!`);
-              updated.quantity = product.stock;
+            if (product) {
+              const maxStock = product.stock || product.Stock || product.quantity || 0;
+              if (updated.quantity > maxStock) {
+                updated.quantity = maxStock;
+              }
             }
           }
           
@@ -152,6 +161,42 @@ export default function AddOrder() {
 
   const { subtotal, discount, total } = calculateTotals();
 
+  // Filter customers based on search
+  const filteredCustomers = customers.filter(c => {
+    const searchLower = customerSearch.toLowerCase();
+    return (
+      c.customerName?.toLowerCase().includes(searchLower) ||
+      c.phone?.includes(searchLower)
+    );
+  });
+
+  // Filter promotions based on search
+  const filteredPromotions = promotions.filter(p => {
+    const searchLower = promoSearch.toLowerCase();
+    return (
+      p.promoName?.toLowerCase().includes(searchLower) ||
+      p.promoCode?.toLowerCase().includes(searchLower) ||
+      p.PromoCode?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Handle customer selection
+  const handleCustomerSelect = (customer) => {
+    setCustomerId(customer.customerId);
+    setCustomerSearch(`${customer.customerName} - ${customer.phone}`);
+    setShowCustomerDropdown(false);
+  };
+
+  // Handle promotion selection
+  const handlePromoSelect = (promo) => {
+    setPromoId(promo.promoId);
+    const promoCode = promo.PromoCode || promo.promoCode;
+    const discountText = promo.discountType === "percent" ? `${promo.discountValue}%` : toVNPrice(promo.discountValue);
+    setPromoSearch(`${promoCode} - ${discountText}`);
+    setSelectedPromotion(promo);
+    setShowPromoDropdown(false);
+  };
+
   // Submit order
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,13 +233,16 @@ export default function AddOrder() {
       const product = products.find(
         (p) => String(p.productId) === String(item.productId)
       );
-      if (product && item.quantity > product.stock) {
-        alert(
-          `Sản phẩm "${product.productName}" không đủ hàng trong kho!\n` +
-          `Số lượng yêu cầu: ${item.quantity}\n` +
-          `Tồn kho: ${product.stock}`
-        );
-        return;
+      if (product) {
+        const maxStock = product.stock || product.Stock || product.quantity || 0;
+        if (item.quantity > maxStock) {
+          alert(
+            `Sản phẩm "${product.productName}" không đủ hàng trong kho!\n` +
+            `Số lượng yêu cầu: ${item.quantity}\n` +
+            `Tồn kho: ${maxStock}`
+          );
+          return;
+        }
       }
     }
     
@@ -305,44 +353,91 @@ export default function AddOrder() {
       <form onSubmit={handleSubmit}>
         <div className="row mb-4">
           {/* Customer Selection */}
-          <div className="col-md-4">
+          <div className="col-md-4 position-relative">
             <label className="form-label">
               Khách hàng <span className="text-danger">*</span>
             </label>
-            <select
-              className="form-select"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-            >
-              <option value="">-- Chọn khách hàng --</option>
-              {customers.map((c) => (
-                <option key={c.customerId} value={c.customerId}>
-                  {c.customerName} - {c.phone}
-                </option>
-              ))}
-            </select>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Nhập tên hoặc số điện thoại khách hàng..."
+              value={customerSearch}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                setShowCustomerDropdown(true);
+                if (!e.target.value) setCustomerId("");
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
+              required={!customerId}
+            />
+            {showCustomerDropdown && customerSearch && (
+              <div className="position-absolute w-100 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: "200px", overflowY: "auto" }}>
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map((c) => (
+                    <div
+                      key={c.customerId}
+                      className="p-2 cursor-pointer hover-bg-light"
+                      style={{ cursor: "pointer" }}
+                      onMouseDown={() => handleCustomerSelect(c)}
+                    >
+                      {c.customerName} - {c.phone}
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-2 text-muted fst-italic">Không tìm thấy khách hàng</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Promotion Selection */}
-          <div className="col-md-4">
+          <div className="col-md-4 position-relative">
             <label className="form-label">Khuyến mãi (tùy chọn)</label>
-            <select
-              className="form-select"
-              value={promoId}
-              onChange={(e) => setPromoId(e.target.value)}
-            >
-              <option value="">-- Không áp dụng --</option>
-              {promotions.map((p) => (
-                <option key={p.promoId} value={p.promoId}>
-                  {p.promoName} (
-                  {p.discountType === "percent"
-                    ? `${p.discountValue}%`
-                    : toVNPrice(p.discountValue)}
-                  )
-                </option>
-              ))}
-            </select>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Nhập tên hoặc mã khuyến mãi..."
+              value={promoSearch}
+              onChange={(e) => {
+                setPromoSearch(e.target.value);
+                setShowPromoDropdown(true);
+                if (!e.target.value) {
+                  setPromoId("");
+                  setSelectedPromotion(null);
+                }
+              }}
+              onFocus={() => setShowPromoDropdown(true)}
+            />
+            {showPromoDropdown && (
+              <div className="position-absolute w-100 bg-white border rounded shadow-sm" style={{ zIndex: 1000, maxHeight: "200px", overflowY: "auto" }}>
+                <div
+                  className="p-2 cursor-pointer hover-bg-light"
+                  style={{ cursor: "pointer" }}
+                  onMouseDown={() => {
+                    setPromoId("");
+                    setPromoSearch("");
+                    setSelectedPromotion(null);
+                    setShowPromoDropdown(false);
+                  }}
+                >
+                  <em className="text-muted">-- Không áp dụng --</em>
+                </div>
+                {filteredPromotions.length > 0 ? (
+                  filteredPromotions.map((p) => (
+                    <div
+                      key={p.promoId}
+                      className="p-2 cursor-pointer hover-bg-light"
+                      style={{ cursor: "pointer" }}
+                      onMouseDown={() => handlePromoSelect(p)}
+                    >
+                      <strong>{p.PromoCode || p.promoCode}</strong> - {p.discountType === "percent" ? `${p.discountValue}%` : toVNPrice(p.discountValue)}
+                    </div>
+                  ))
+                ) : (
+                  promoSearch && <div className="p-2 text-muted fst-italic">Không tìm thấy khuyến mãi</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* User ID (hidden or auto-filled) */}
@@ -401,14 +496,17 @@ export default function AddOrder() {
                             required
                           >
                             <option value="">-- Chọn sản phẩm --</option>
-                            {products.map((p) => (
-                              <option
-                                key={p.productId} value={p.productId}
-                                disabled={p.quantity === 0}
-                              >
-                                {p.productName} - Tồn: {p.quantity}
-                              </option>
-                            ))}
+                            {products.map((p) => {
+                              const stock = p.stock || p.Stock || p.quantity || 0;
+                              return (
+                                <option
+                                  key={p.productId} value={p.productId}
+                                  disabled={stock === 0}
+                                >
+                                  {p.productName} - Tồn: {stock}
+                                </option>
+                              );
+                            })}
                           </select>
                         </td>
                         <td>
@@ -416,10 +514,9 @@ export default function AddOrder() {
                             type="number"
                             className="form-control text-end"
                             value={item.price}
-                            onChange={e => updateCartItem(item.id, "price", e.target.value)}
-                            min="1"
-                            step="1"
-                            required
+                            readOnly
+                            disabled
+                            style={{ backgroundColor: "#e9ecef", cursor: "not-allowed" }}
                           />
                         </td>
                         <td>
@@ -427,20 +524,35 @@ export default function AddOrder() {
                             type="number"
                             className="form-control text-center"
                             value={item.quantity}
-                            onChange={(e) =>
-                              updateCartItem(item.id, "quantity", e.target.value)
-                            }
+                            onChange={(e) => {
+                              const newQty = parseInt(e.target.value) || 0;
+                              const product = products.find(
+                                (p) => String(p.productId) === String(item.productId)
+                              );
+                              const maxStock = product?.stock || product?.Stock || product?.quantity || 0;
+                              
+                              if (newQty > maxStock) {
+                                alert(`Số lượng không được vượt quá tồn kho (${maxStock})`);
+                                updateCartItem(item.id, "quantity", maxStock);
+                              } else {
+                                updateCartItem(item.id, "quantity", newQty);
+                              }
+                            }}
                             min="1"
-                            max={item.quantity}
+                            max={(() => {
+                              const product = products.find(
+                                (p) => String(p.productId) === String(item.productId)
+                              );
+                              return product?.stock || product?.Stock || product?.quantity || 999;
+                            })()}
                             required
                             style={{
                               borderColor: (() => {
                                 const product = products.find(
                                   (p) => String(p.productId) === String(item.productId)
                                 );
-                                return product && item.quantity > product.stock
-                                  ? "red"
-                                  : "";
+                                const maxStock = product?.stock || product?.Stock || product?.quantity || 0;
+                                return item.quantity > maxStock ? "red" : "";
                               })(),
                             }}
                           />
@@ -448,10 +560,11 @@ export default function AddOrder() {
                             const product = products.find(
                               (p) => String(p.productId) === String(item.productId)
                             );
-                            if (product && item.quantity > product.stock) {
+                            const maxStock = product?.stock || product?.Stock || product?.quantity || 0;
+                            if (item.quantity > maxStock && maxStock > 0) {
                               return (
                                 <small className="text-danger">
-                                  Vượt quá tồn kho ({product.stock})
+                                  Vượt quá tồn kho ({maxStock})
                                 </small>
                               );
                             }

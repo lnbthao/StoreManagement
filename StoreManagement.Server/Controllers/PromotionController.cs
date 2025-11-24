@@ -19,14 +19,29 @@ public class PromotionController : Controller
 
     // GET all promotions
     [HttpGet]
-    public async Task<List<Promotion>> GetPromotions(string? code)
+    public async Task<List<Promotion>> GetPromotions(string? code, [FromQuery] bool? availableOnly = null)
     {
-        if (!string.IsNullOrEmpty(code))
-            return await _dbContext.Promotions
-                .Where(p => EF.Functions.Like(p.PromoCode, $"%{code}%"))
-                .ToListAsync();
+        var query = _dbContext.Promotions.AsQueryable();
 
-        return await _dbContext.Promotions.ToListAsync();
+        // Lọc theo mã code nếu có
+        if (!string.IsNullOrEmpty(code))
+        {
+            query = query.Where(p => EF.Functions.Like(p.PromoCode, $"%{code}%"));
+        }
+
+        // Lọc chỉ các mã còn lượt sử dụng nếu availableOnly = true
+        if (availableOnly == true)
+        {
+            var now = DateTime.UtcNow.Date;
+            query = query.Where(p => 
+                p.Status.ToLower() == "active" &&
+                p.StartDate <= now &&
+                p.EndDate >= now &&
+                (p.UsageLimit == null || p.UsageLimit == 0 || (p.UsedCount ?? 0) < p.UsageLimit)
+            );
+        }
+
+        return await query.ToListAsync();
     }
 
     // GET by promo_id

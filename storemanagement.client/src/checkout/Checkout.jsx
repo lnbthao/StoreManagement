@@ -60,7 +60,7 @@ export default function Checkout() {
       setCategoryList(category.data)
     );
 
-    axios.get("/api/promotion").then(promotion =>
+    axios.get("/api/promotion", { params: { availableOnly: true } }).then(promotion =>
       setPromotionList(promotion.data)
     );
 

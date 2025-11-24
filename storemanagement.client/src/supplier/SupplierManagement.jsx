@@ -1,7 +1,6 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MOCK_SUPPLIERS } from "../../mockData/Supplier";
 import { splitPhoneNumber } from "../util";
 import { ArrowClockwise, Eye, PencilSquare, PlusCircleFill, Trash3 } from "react-bootstrap-icons";
 import SupplierViewModal from "./SupplierViewModal";
@@ -22,7 +21,7 @@ export default function SupplierManagement() {
       const res = await axios.get(url);
       setSupplierList(res.data);
     } catch {
-      setSupplierList(MOCK_SUPPLIERS);
+      setSupplierList([]);
     } finally {
       setLoading(false);
     }

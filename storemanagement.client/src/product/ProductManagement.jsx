@@ -11,7 +11,6 @@ import {
 } from "react-bootstrap-icons";
 import { useNavigate } from "react-router-dom";
 import { toVNNumber, toVNPrice } from "../util";
-import { MOCK_PRODUCTS } from "../../mockData/Products";
 import ProductViewModal from "./ProductViewModal";
 import ProductFilterModal from "./ProductFilterModal";
 import InventoryModal from "./InventoryModal";
@@ -46,8 +45,8 @@ export default function ProductManagement() {
             const res = await axios.get(url);
             return Array.isArray(res.data) ? res.data : [];
         } catch (err) {
-            console.warn("API lỗi, dùng MOCK_PRODUCTS", err);
-            return Array.isArray(MOCK_PRODUCTS) ? MOCK_PRODUCTS : [];
+            console.error("API error:", err);
+            return [];
         }
     };
 

@@ -164,23 +164,53 @@ namespace StoreManagement.Server.Controllers
                     {
                         // Check if promotion is valid
                         var now = DateTime.Now;
-                        if (promo.StartDate <= now && promo.EndDate >= now)
+                        var isActive = promo.Status?.ToLower() == "active";
+                        var isInDateRange = promo.StartDate <= now && promo.EndDate >= now;
+                        
+                        // Check usage limit
+                        var usedCount = promo.UsedCount ?? 0;
+                        var usageLimit = promo.UsageLimit ?? 0;
+                        var hasUsageLeft = usageLimit == 0 || usedCount < usageLimit;
+                        
+                        if (!isActive)
                         {
-                            if (promo.DiscountType == "percentage")
-                            {
-                                discountAmount = totalAmount * promo.DiscountValue / 100;
-                            }
-                            else
-                            {
-                                discountAmount = promo.DiscountValue;
-                            }
-                            
-                            // Đảm bảo giảm giá không lớn hơn tổng tiền
-                            if (discountAmount > totalAmount)
-                            {
-                                discountAmount = totalAmount;
-                            }
+                            return BadRequest(new { message = "Mã khuyến mãi hiện đang bị vô hiệu hóa." });
                         }
+                        
+                        if (!isInDateRange)
+                        {
+                            return BadRequest(new { message = "Mã khuyến mãi không trong thời gian áp dụng." });
+                        }
+                        
+                        if (!hasUsageLeft)
+                        {
+                            return BadRequest(new { message = "Mã khuyến mãi đã hết lượt sử dụng." });
+                        }
+                        
+                        // Check minimum order amount
+                        if (promo.MinOrderAmount != null && totalAmount < promo.MinOrderAmount)
+                        {
+                            return BadRequest(new { message = $"Đơn hàng chưa đạt giá trị tối thiểu ({promo.MinOrderAmount:N0}đ) để sử dụng mã này." });
+                        }
+                        
+                        // Calculate discount - FIX: check for "percent" not "percentage"
+                        if (promo.DiscountType?.ToLower() == "percent")
+                        {
+                            discountAmount = totalAmount * promo.DiscountValue / 100;
+                        }
+                        else
+                        {
+                            discountAmount = promo.DiscountValue;
+                        }
+                        
+                        // Đảm bảo giảm giá không lớn hơn tổng tiền
+                        if (discountAmount > totalAmount)
+                        {
+                            discountAmount = totalAmount;
+                        }
+                        
+                        // Tăng UsedCount
+                        promo.UsedCount = usedCount + 1;
                     }
                 }
 
@@ -223,7 +253,7 @@ namespace StoreManagement.Server.Controllers
             var oldStatus = order.Status;
             var newStatus = statusUpdate.Status;
             
-            // Nếu đơn hàng bị hủy, hoàn trả hàng vào kho
+            // Nếu đơn hàng bị hủy, hoàn trả hàng vào kho và giảm lượt sử dụng promotion
             if (newStatus?.ToLower() == "canceled" || newStatus?.ToLower() == "cancelled")
             {
                 // Lấy tất cả các order items
@@ -239,7 +269,18 @@ namespace StoreManagement.Server.Controllers
                         {
                             // Hoàn trả số lượng vào kho
                             inventory.Quantity = inventory.Quantity + item.Quantity;
+                            inventory.UpdatedAt = DateTime.Now;
                         }
+                    }
+                }
+                
+                // Nếu đơn hàng có sử dụng mã giảm giá, giảm UsedCount
+                if (order.PromoId != null)
+                {
+                    var promo = await _context.Promotions.FindAsync(order.PromoId);
+                    if (promo != null && promo.UsedCount > 0)
+                    {
+                        promo.UsedCount = promo.UsedCount - 1;
                     }
                 }
             }

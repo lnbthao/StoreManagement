@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import axios from "axios";
 
 export default function OrderViewModal({ open, order, onClose }) {
-  if (!open || !order) return null;
-
+  const [cancelling, setCancelling] = useState(false);
+  
   const o = order || {};
 
   const fmtMoney = (n) =>
@@ -20,6 +21,29 @@ export default function OrderViewModal({ open, order, onClose }) {
     const text = textMap[s] || o.status;
     return <span className={`badge bg-${color}`}>{text}</span>;
   }, [o.status]);
+
+  const handleCancelOrder = async () => {
+    if (!confirm(`Bạn có chắc chắn muốn hủy đơn hàng #${o.orderId || o.order_id}?\n\nSố lượng hàng và lượt sử dụng mã giảm giá sẽ được hoàn lại.`)) {
+      return;
+    }
+    
+    setCancelling(true);
+    try {
+      const orderId = o.orderId || o.order_id;
+      await axios.put(`/api/order/${orderId}/status`, { status: "canceled" });
+      alert("Đã hủy đơn hàng thành công!");
+      onClose();
+      // Reload page to refresh order list
+      window.location.reload();
+    } catch (error) {
+      console.error("Error canceling order:", error);
+      alert("Lỗi khi hủy đơn hàng: " + (error.response?.data?.message || error.message));
+    } finally {
+      setCancelling(false);
+    }
+  };
+  
+  if (!open || !order) return null;
 
   const stop = (e) => e.stopPropagation();
 
@@ -137,6 +161,15 @@ export default function OrderViewModal({ open, order, onClose }) {
               <button className="btn btn-secondary" onClick={onClose}>
                 Đóng
               </button>
+              {(o.status === "paid" || o.status === "pending") && (
+                <button 
+                  className="btn btn-danger" 
+                  onClick={handleCancelOrder}
+                  disabled={cancelling}
+                >
+                  {cancelling ? "\u0110ang h\u1ee7y..." : "H\u1ee7y \u0111\u01a1n h\u00e0ng"}
+                </button>
+              )}
             </div>
           </div>
         </div>

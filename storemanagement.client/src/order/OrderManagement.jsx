@@ -334,17 +334,11 @@ export default function OrderManagement() {
       <h1 className="text-center text-uppercase mb-3 fs-2">Quản lý đơn hàng</h1>
 
       <div className="d-flex column-gap-3 mb-3">
-        <button
-          className="btn btn-success"
-          onClick={() => navTo("/admin/order/add")}
-        >
-          <PlusCircleFill className="me-1" /> Tạo đơn hàng
-        </button>
 
         <form className="col" onSubmit={(e) => e.preventDefault()}>
           <input
             type="search"
-            placeholder="Nhập dữ liệu tìm kiếm"
+            placeholder="Nhập ID đơn hàng, tổng tiền..."
             className="form-control"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
