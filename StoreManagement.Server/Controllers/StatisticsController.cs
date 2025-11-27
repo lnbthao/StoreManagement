@@ -194,5 +194,6 @@ namespace StoreManagement.Server.Controllers
             {
                 return StatusCode(500, new { message = "Lỗi khi lấy đơn hàng gần đây", error = ex.Message });
             }
+        }
     }
 }
