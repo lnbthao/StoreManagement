@@ -67,6 +67,7 @@ export default function AddUpProduct({ status = false }) {
             setLoading(true);
             const { data } = await axios.get(`/api/product/${productId}`);
 
+            // Gán dữ liệu vào form
             setProduct({
                 productId: data.productId ?? Number(productId),
                 productName: data.productName ?? "",
@@ -75,11 +76,21 @@ export default function AddUpProduct({ status = false }) {
                 barcode: data.barcode ?? "",
                 price: data.price?.toString() ?? "",
                 unit: data.unit ?? "",
-                imageUrl: `${backendUrl}${data.imageUrl}` ?? ""
+                imageUrl: data.imageUrl || ""   // ← lưu lại URL ảnh cũ để gửi server
             });
 
-            setImageUrl(`${backendUrl}${data.imageUrl}` ?? "");
+            if (!!data.imageUrl) {
+                const fullUrl = `${backendUrl}${data.imageUrl}`;
+                setImageUrl(data.imageUrl);        // giữ URL tương đối để gửi lên server
+                setImagePreview(fullUrl);          // dùng fullPath để hiển thị
+            } else {
+                setImageUrl("");
+                setImagePreview("");
+            }
+
+
         } catch (err) {
+            console.error(err);
             alert("Không tải được dữ liệu sản phẩm.");
             navTo("/admin/product");
         } finally {
@@ -160,9 +171,12 @@ export default function AddUpProduct({ status = false }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validate các trường bắt buộc
         if (!validateAll()) return;
 
-        if (!status && !imageFile) {
+        // Khi THÊM MỚI → bắt buộc phải có ảnh
+        if (!status && !imageFile && !imageUrl) {
             alert("Vui lòng chọn ảnh sản phẩm.");
             return;
         }
@@ -170,17 +184,26 @@ export default function AddUpProduct({ status = false }) {
         setSubmitting(true);
 
         try {
-            let finalImage = imageUrl;
+            let finalImageUrl = imageUrl; // mặc định là ảnh cũ (đã load khi mở form sửa)
 
+            // Nếu người dùng CHỌN ẢNH MỚI → upload lên server lấy URL mới
             if (imageFile) {
                 const fd = new FormData();
                 fd.append("file", imageFile);
-                const up = await axios.post("/api/product/upload-image", fd, {
-                    headers: { "Content-Type": "multipart/form-data" },
-                });
-                finalImage = up.data.url;
+
+                const uploadResponse = await axios.post(
+                    "/api/product/upload-image",
+                    fd,
+                    {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    }
+                );
+
+                finalImageUrl = uploadResponse.data.url; // URL ảnh mới
+                setImagePreview(""); // reset preview nếu cần (tùy bạn)
             }
 
+            // PAYLOAD GỬI LÊN SERVER — LUÔN CÓ imageUrl
             const payload = {
                 productName: product.productName.trim(),
                 categoryId: product.categoryId,
@@ -188,17 +211,24 @@ export default function AddUpProduct({ status = false }) {
                 barcode: product.barcode.trim(),
                 price: Number(product.price),
                 unit: product.unit.trim(),
-                ...(finalImage && { imageUrl: finalImage })
+                imageUrl: finalImageUrl, // luôn có giá trị: cũ hoặc mới
             };
 
-            let res;
-            if (status) res = await axios.put(`/api/product/${id}`, payload);
-            else res = await axios.post("/api/product", payload);
+            let response;
+            if (status) {
+                // CHỈNH SỬA
+                response = await axios.put(`/api/product/${id}`, payload);
+            } else {
+                // THÊM MỚI
+                response = await axios.post("/api/product", payload);
+            }
 
             alert(`${status ? "Cập nhật" : "Thêm"} sản phẩm thành công!`);
             navTo("/admin/product", { replace: true });
         } catch (err) {
-            alert(err.response?.data?.message || "Lỗi khi lưu sản phẩm.");
+            console.error(err);
+            const msg = err.response?.data?.message || "Lỗi khi lưu sản phẩm.";
+            alert(msg);
         } finally {
             setSubmitting(false);
         }
@@ -319,9 +349,7 @@ export default function AddUpProduct({ status = false }) {
                         className={`form-control ${errors.image ? "is-invalid" : ""}`}
                         onChange={(e) => {
                             const f = e.target.files[0];
-
                             if (!f) {
-                                setErrors((err) => ({ ...err, image: "" }));
                                 return;
                             }
 
@@ -353,16 +381,23 @@ export default function AddUpProduct({ status = false }) {
                     )}
 
                     {(imagePreview || imageUrl) && (
-                        <img
-                            src={imagePreview || imageUrl}
-                            alt="preview"
-                            style={{
-                                maxWidth: 200,
-                                marginTop: 10,
-                                borderRadius: 8,
-                                border: "1px solid #ddd",
-                            }}
-                        />
+                        <div className="text-center mt-3">
+                            <img
+                                src={imagePreview || imageUrl}
+                                alt="Preview sản phẩm"
+                                className="img-thumbnail"
+                                style={{
+                                    maxWidth: "280px",
+                                    maxHeight: "280px",
+                                    objectFit: "cover",
+                                    borderRadius: "12px",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+                                }}
+                            />
+                            <p className="mt-2 text-muted small">
+                                {imagePreview ? "Ảnh mới sẽ được áp dụng" : "Ảnh hiện tại của sản phẩm"}
+                            </p>
+                        </div>
                     )}
                 </div>
 

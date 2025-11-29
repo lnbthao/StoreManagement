@@ -2,8 +2,6 @@
 
 public partial class Product
 {
-    [Key]
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int ProductId { get; set; }
 
     public int? CategoryId { get; set; }
