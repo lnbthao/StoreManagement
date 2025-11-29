@@ -28,11 +28,11 @@ export default function ProductManagement() {
     const [inventoryProduct, setInventoryProduct] = useState(null);
     const [originalList, setOriginalList] = useState([]); // dữ liệu gốc từ API
 
-    const [categories, setCategories] = useState([]);     // danh sách loại
-    const [hasInactive, setHasInactive] = useState(false); // có sản phẩm ngừng bán không
+    const [categories, setCategories] = useState([]);     
+    const [hasInactive, setHasInactive] = useState(false); 
 
     const [filters, setFilters] = useState({
-        category: "",      // Loại sản phẩm
+        category: "",      
         status: "all"      // all / active / inactive
     });
 
@@ -104,7 +104,7 @@ export default function ProductManagement() {
 
         setProductList(result);
     }, [search, filters, originalList]);
-    // 1. XÓA / KHÔI PHỤC THẬT QUA API
+    //XÓA / KHÔI PHỤC
     const handleActive = async (p) => {
         const action = p.isActive ? "xóa" : "khôi phục";
         if (!confirm(`Bạn có chắc muốn ${action} sản phẩm "${p.productName}" không?`)) return;
@@ -131,7 +131,7 @@ export default function ProductManagement() {
         }
     };
 
-    // 2. NHẬP KHO THẬT QUA API
+    // 2. NHẬP KHO
     const handleOpenInventory = (p) => {
         setInventoryProduct(p);
         setOpenInventory(true);
@@ -144,10 +144,9 @@ export default function ProductManagement() {
         }
 
         try {
-            // GỬI ĐÚNG TÊN TRƯỜNG MÀ BACKEND .NET ĐANG CHỜ
             const res = await axios.post("/api/product/import-inventory", {
-                ProductId: inventoryProduct.productId,   // P và Id in hoa
-                Quantity: Number(quantity)               // Q in hoa
+                ProductId: inventoryProduct.productId,   
+                Quantity: Number(quantity)               
             });
 
             // Cập nhật tồn kho realtime trên bảng
@@ -331,8 +330,14 @@ export default function ProductManagement() {
                     setInventoryProduct(null);
                 }}
                 onSubmit={(newStock) => {
-                    // Cập nhật tồn kho realtime
                     setProductList(prev =>
+                        prev.map(p =>
+                            p.productId === inventoryProduct.productId
+                                ? { ...p, quantity: newStock }
+                                : p
+                        )
+                    );
+                    setOriginalList(prev =>
                         prev.map(p =>
                             p.productId === inventoryProduct.productId
                                 ? { ...p, quantity: newStock }

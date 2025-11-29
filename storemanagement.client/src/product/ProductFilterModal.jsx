@@ -6,8 +6,8 @@ export default function ProductFilterModal({
     onClose,
     onApply,
     currentFilters = { category: "", status: "all" },
-    categories = [],           // nhận từ cha
-    hasInactive = false        // có ngừng bán không
+    categories = [],           
+    hasInactive = false        
 }) {
     const handleApply = () => {
         const category = document.getElementById("filterCategory").value || "";

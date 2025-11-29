@@ -122,14 +122,13 @@ namespace StoreManagement.Server.Controllers
                 new { productId = product.ProductId });
         }
 
-        // PUT: api/Product/5
+        // PUT: api/Product/x
         [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product product)
         {
-            if (id != product.ProductId) return BadRequest();
-
             var existing = await _context.Products.FindAsync(id);
-            if (existing == null || !existing.IsActive) return NotFound();
+            if (existing == null || !existing.IsActive)
+                return NotFound();
 
             existing.ProductName = product.ProductName;
             existing.Barcode = product.Barcode;
@@ -138,11 +137,17 @@ namespace StoreManagement.Server.Controllers
             existing.CategoryId = product.CategoryId;
             existing.SupplierId = product.SupplierId;
 
+            // K H Ô N G  Đ Ộ N G  V À O:
+            // existing.ImageUrl = product.ImageUrl;
+
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // THAY THẾ [HttpDelete("{id:int}")]
+
+
+
+
         [HttpPut("{id:int}/delete")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
@@ -150,7 +155,7 @@ namespace StoreManagement.Server.Controllers
             if (product == null) return NotFound();
             product.IsActive = false;
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Đã xóa sản phẩm" }); // thêm message cho đẹp
+            return Ok(new { message = "Đã xóa sản phẩm" });
         }
 
         // UPLOAD IMAGE

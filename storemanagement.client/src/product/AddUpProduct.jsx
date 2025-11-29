@@ -32,6 +32,7 @@ export default function AddUpProduct({ status = false }) {
         barcode: "",
         price: "",
         unit: "",
+        image: ""
     });
 
     const [imageFile, setImageFile] = useState(null);
@@ -160,6 +161,11 @@ export default function AddUpProduct({ status = false }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateAll()) return;
+
+        if (!status && !imageFile) {
+            alert("Vui lòng chọn ảnh sản phẩm.");
+            return;
+        }
 
         setSubmitting(true);
 
@@ -310,15 +316,41 @@ export default function AddUpProduct({ status = false }) {
                     <input
                         type="file"
                         accept="image/*"
-                        className="form-control"
+                        className={`form-control ${errors.image ? "is-invalid" : ""}`}
                         onChange={(e) => {
                             const f = e.target.files[0];
-                            if (f) {
-                                setImageFile(f);
-                                setImagePreview(URL.createObjectURL(f));
+
+                            if (!f) {
+                                setErrors((err) => ({ ...err, image: "" }));
+                                return;
                             }
+
+                            // Validate dung lượng (3MB)
+                            if (f.size > 3 * 1024 * 1024) {
+                                setErrors((err) => ({ ...err, image: "Ảnh vượt quá dung lượng 3MB." }));
+                                e.target.value = "";
+                                return;
+                            }
+
+                            // Validate loại file
+                            const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+                            if (!allowedTypes.includes(f.type)) {
+                                setErrors((err) => ({ ...err, image: "Chỉ hỗ trợ JPG, PNG hoặc WEBP." }));
+                                e.target.value = "";
+                                return;
+                            }
+
+                            // Hợp lệ → reset lỗi
+                            setErrors((err) => ({ ...err, image: "" }));
+
+                            setImageFile(f);
+                            setImagePreview(URL.createObjectURL(f));
                         }}
                     />
+
+                    {errors.image && (
+                        <div className="invalid-feedback">{errors.image}</div>
+                    )}
 
                     {(imagePreview || imageUrl) && (
                         <img
