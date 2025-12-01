@@ -90,6 +90,7 @@ export default function AddUpUser({ status = false }) {
   const handleChange = (key) => (e) => {
     const val = e.target.value;
     setUser((u) => ({ ...u, [key]: val }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
   const handleBlur = (key) => (e) => {
@@ -118,13 +119,21 @@ export default function AddUpUser({ status = false }) {
       if (res.status === 200 || res.status === 201) {
         alert(`${status ? "Cập nhật" : "Thêm"} người dùng thành công!`);
         navTo("/admin/user", { replace: true });
-      } else {
-        alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
-        console.error(res);
       }
     } catch (err) {
-      alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
       console.error(err);
+
+      const field = err?.response?.data?.field;
+      const message = err?.response?.data?.message;
+
+      if (field && message && Object.prototype.hasOwnProperty.call(errors, field)) {
+        setErrors((prev) => ({ ...prev, [field]: message }));
+      } else {
+        const backendMsg = message || "Lỗi không xác định.";
+        alert(
+          `${status ? "Cập nhật" : "Thêm"} thất bại\n${backendMsg}`
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -153,6 +162,7 @@ export default function AddUpUser({ status = false }) {
             value={user.username}
             onChange={handleChange("username")}
             onBlur={handleBlur("username")}
+            disabled={status}
           />
           {errors.username && (
             <small className="text-danger">{errors.username}</small>
