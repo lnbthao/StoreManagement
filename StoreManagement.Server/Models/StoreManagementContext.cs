@@ -58,6 +58,8 @@ public partial class StoreManagementContext : DbContext
 
             entity.ToTable("customers");
 
+            entity.HasIndex(e => e.Phone, "phone").IsUnique();
+
             entity.Property(e => e.CustomerId).HasColumnName("customer_id");
             entity.Property(e => e.Address)
                 .HasColumnType("text")
