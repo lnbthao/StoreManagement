@@ -32,7 +32,7 @@ export default function AddUpCustomer({ status = false }) {
     }
     if (key === "phone") {
       if (!val.trim()) msg = "Vui lòng nhập số điện thoại.";
-      else if (!/^\d{10,11}$/.test(val)) msg = "SĐT chỉ chứa số (10–11 chữ số).";
+      else if (!/^0\d{9}$/.test(val)) msg = "SĐT không hợp lệ.";
     }
 
     if (key === "email") {
@@ -81,6 +81,7 @@ export default function AddUpCustomer({ status = false }) {
   const handleChange = (key) => (e) => {
     const val = e.target.value;
     setCustomer((c) => ({ ...c, [key]: val }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
   const handleBlur = (key) => (e) => {
@@ -106,13 +107,21 @@ export default function AddUpCustomer({ status = false }) {
       if (res.status === 200 || res.status === 201) {
         alert(`${status ? "Cập nhật" : "Thêm"} khách hàng thành công!`);
         navTo("/admin/customer", { replace: true });
-      } else {
-        alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
-        console.error(res);
       }
     } catch (err) {
-      alert(`${status ? "Cập nhật" : "Thêm"} thất bại!`);
       console.error(err);
+
+      const field = err?.response?.data?.field;
+      const message = err?.response?.data?.message;
+
+      if (field && message && Object.prototype.hasOwnProperty.call(errors, field)) {
+        setErrors((prev) => ({ ...prev, [field]: message }));
+      } else {
+        const backendMsg = message || "Lỗi không xác định.";
+        alert(
+          `${status ? "Cập nhật" : "Thêm"} thất bại\n${backendMsg}`
+        );
+      }
     } finally {
       setSubmitting(false);
     }

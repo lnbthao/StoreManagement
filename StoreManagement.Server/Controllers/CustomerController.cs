@@ -95,7 +95,12 @@ public class CustomerController : Controller
     {
         if (string.IsNullOrWhiteSpace(phone))
         {
-            return BadRequest(new { message = "Vui lòng nhập số điện thoại." });
+            return BadRequest(new { field = "phone", message = "Vui lòng nhập số điện thoại." });
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+        {
+            return BadRequest(new { field = "phone", message = "SĐT không hợp lệ" });
         }
 
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Phone == phone);
@@ -122,9 +127,31 @@ public class CustomerController : Controller
     // [Authorize]
     public async Task<IActionResult> AddCustomer([FromBody] Customer c)
     {
+        if (string.IsNullOrWhiteSpace(c.CustomerName))
+        {
+            return BadRequest(new { field = "customerName", message = "Vui lòng nhập tên khách hàng." });
+        }
+
+        if (string.IsNullOrWhiteSpace(c.Phone))
+        {
+            return BadRequest(new { field = "phone", message = "Vui lòng nhập số điện thoại." });
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(c.Phone, @"^0\d{9}$"))
+        {
+            return BadRequest(new { field = "phone", message = "SĐT không hợp lệ." });
+        }
+
+        if (await _db.Customers.AnyAsync(x => x.Phone == c.Phone))
+        {
+            return Conflict(new { field = "phone", message = "SĐT đã tồn tại." });
+        }
+
         c.IsActive = true;
         _db.Customers.Add(c);
-        return await _db.SaveChangesAsync() > 0 ? StatusCode(201) : StatusCode(400);
+        return await _db.SaveChangesAsync() > 0
+            ? StatusCode(201)
+            : StatusCode(400, new { field = (string?)null, message = "Không thể tạo khách hàng." });
     }
 
     [HttpPut("{id}")]
@@ -134,12 +161,34 @@ public class CustomerController : Controller
         var cus = await _db.Customers.FirstOrDefaultAsync(x => x.CustomerId == id);
         if (cus is null) return NotFound();
 
+        if (string.IsNullOrWhiteSpace(c.CustomerName))
+        {
+            return BadRequest(new { field = "customerName", message = "Vui lòng nhập tên khách hàng." });
+        }
+
+        if (string.IsNullOrWhiteSpace(c.Phone))
+        {
+            return BadRequest(new { field = "phone", message = "Vui lòng nhập số điện thoại." });
+        }
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(c.Phone, @"^0\d{9}$"))
+        {
+            return BadRequest(new { field = "phone", message = "SĐT không hợp lệ." });
+        }
+
+        if (await _db.Customers.AnyAsync(x => x.Phone == c.Phone && x.CustomerId != id))
+        {
+            return Conflict(new { field = "phone", message = "SĐT đã tồn tại." });
+        }
+
         cus.CustomerName = c.CustomerName;
         cus.Phone = c.Phone;
         cus.Email = c.Email;
         cus.Address = c.Address;
         _db.Customers.Update(cus);
-        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+        return await _db.SaveChangesAsync() > 0
+            ? Ok()
+            : StatusCode(400, new { field = (string?)null, message = "Không thể cập nhật khách hàng." });
     }
 
     [HttpDelete("{id}")]

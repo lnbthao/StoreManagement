@@ -10,7 +10,6 @@ export default function ProductViewModal({ open, product, onClose }) {
             <Modal.Header closeButton><Modal.Title>Chi tiết sản phẩm</Modal.Title></Modal.Header>
             <Modal.Body>
                 <div className="row g-4 align-items-start">
-                    {/* CỘT ẢNH – KHÔNG CÓ ẢNH THÌ VẪN ĐẸP */}
                     <div className="col-md-4">
                         <div className="text-center mt-4">
                             {product.imageUrl ? (

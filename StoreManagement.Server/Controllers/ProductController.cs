@@ -122,27 +122,30 @@ namespace StoreManagement.Server.Controllers
                 new { productId = product.ProductId });
         }
 
-        // PUT: api/Product/5
+        // PUT: api/Product/x
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product product)
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto dto)
         {
-            if (id != product.ProductId) return BadRequest();
+            var product = await _context.Products.FindAsync(id);
+            if (product == null || !product.IsActive)
+                return NotFound();
 
-            var existing = await _context.Products.FindAsync(id);
-            if (existing == null || !existing.IsActive) return NotFound();
+            // Cập nhật các trường bình thường
+            product.ProductName = dto.ProductName;
+            product.Barcode = dto.Barcode ?? product.Barcode;
+            product.Price = dto.Price;
+            product.Unit = dto.Unit ?? product.Unit;
+            product.CategoryId = dto.CategoryId ?? product.CategoryId;
+            product.SupplierId = dto.SupplierId ?? product.SupplierId;
 
-            existing.ProductName = product.ProductName;
-            existing.Barcode = product.Barcode;
-            existing.Price = product.Price;
-            existing.Unit = product.Unit;
-            existing.CategoryId = product.CategoryId;
-            existing.SupplierId = product.SupplierId;
-
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            {
+                product.ImageUrl = dto.ImageUrl.Trim();
+            }
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // THAY THẾ [HttpDelete("{id:int}")]
         [HttpPut("{id:int}/delete")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
@@ -150,7 +153,7 @@ namespace StoreManagement.Server.Controllers
             if (product == null) return NotFound();
             product.IsActive = false;
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Đã xóa sản phẩm" }); // thêm message cho đẹp
+            return Ok(new { message = "Đã xóa sản phẩm" });
         }
 
         // UPLOAD IMAGE
@@ -250,6 +253,17 @@ namespace StoreManagement.Server.Controllers
             public int? SupplierId { get; set; }
             public string? SupplierName { get; set; }
             public int Stock { get; set; }
+        }
+
+        public class UpdateProductDto
+        {
+            public string ProductName { get; set; } = null!;
+            public string? Barcode { get; set; }
+            public decimal Price { get; set; }
+            public string? Unit { get; set; }
+            public int? CategoryId { get; set; }
+            public int? SupplierId { get; set; }
+            public string? ImageUrl { get; set; } // nếu muốn cho update ảnh
         }
     }
 }
