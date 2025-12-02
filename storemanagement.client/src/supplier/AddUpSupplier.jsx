@@ -62,10 +62,13 @@ export default function AddUpSupplier() {
       if (!val.trim()) msg = "Vui lòng nhập tên nhà cung cấp.";
       else if (val.trim().length < 2) msg = "Tên tối thiểu 2 ký tự.";
     }
-    if (key === "phone") {
-      if (!val.trim()) msg = "Vui lòng nhập số điện thoại.";
-      else if (!/^\d{10,11}$/.test(val.trim())) msg = "SĐT chỉ chứa số (10–11 chữ số).";
-    }
+     if (key === "phone") {
+          if (!val.trim()) {
+              msg = "Vui lòng nhập số điện thoại.";
+          } else if (!/^(02\d{9}|0\d{9})$/.test(val.trim())) {
+              msg = "SĐT không hợp lệ. Phải bắt đầu bằng 0 và có 10 chữ số ";
+          }
+      }
     if (key === "email") {
       if (!val.trim()) msg = "Vui lòng nhập email.";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) msg = "Email không hợp lệ.";

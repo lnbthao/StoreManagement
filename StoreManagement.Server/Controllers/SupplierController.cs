@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
+using System.Text.RegularExpressions;
 
 namespace StoreManagement.Server.Controllers;
 
@@ -52,7 +53,12 @@ public class SupplierController : Controller
     [HttpPost]
     public async Task<IActionResult> AddSupplier(Supplier s)
     {
-        s.IsActive ??= true; // mặc định true nếu null
+        s.IsActive ??= true;
+
+        if (string.IsNullOrEmpty(s.Phone) || !Regex.IsMatch(s.Phone, @"^(02\d{9}|0\d{9})$"))
+        {
+            return BadRequest("Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có dạng 02xxxxxxxxx hoặc 0xxxxxxxxx.");
+        }
 
         _context.Suppliers.Add(s);
         var result = await _context.SaveChangesAsync();
@@ -67,6 +73,10 @@ public class SupplierController : Controller
         var existing = await _context.Suppliers.FindAsync(id);
         if (existing == null)
             return NotFound($"Supplier with ID {id} not found.");
+
+        // Validate số điện thoại
+        if (string.IsNullOrEmpty(s.Phone) || !Regex.IsMatch(s.Phone, @"^(02\d{9}|0\d{9})$"))
+            return BadRequest("Số điện thoại không hợp lệ. Phải bắt đầu bằng 0 và có dạng 02xxxxxxxxx hoặc 0xxxxxxxxx.");
 
         existing.SupplierName = s.SupplierName;
         existing.Phone = s.Phone;
