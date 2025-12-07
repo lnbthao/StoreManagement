@@ -1,0 +1,110 @@
+﻿@using StoreManagement.Shared.DTOs
+@using StoreManagement.Shared.Models
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Bộ lọc: Đơn hàng</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="startDate" Label="Từ ngày" Variant="Variant.Outlined" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="endDate" Label="Đến ngày" Variant="Variant.Outlined" Clearable="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="int?" @bind-Value="filters.UserId" Label="Nhân viên tạo" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var user in Users)
+                    {
+                        <MudSelectItem T="int?" Value="@user.UserId">@user.FullName (@user.Username)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="int?" @bind-Value="filters.PromoId" Label="Khuyến mãi" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var promo in Promotions)
+                    {
+                        <MudSelectItem T="int?" Value="@promo.PromoId">@promo.PromoCode</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined" Clearable="true">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("pending")">Chờ thanh toán</MudSelectItem>
+                    <MudSelectItem Value="@("paid")">Đã thanh toán</MudSelectItem>
+                    <MudSelectItem Value="@("canceled")">Đã hủy</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect T="int?" @bind-Value="filters.CategoryId" Label="Danh mục sản phẩm" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var cat in Categories)
+                    {
+                        <MudSelectItem T="int?" Value="@cat.CategoryId">@cat.CategoryName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Error" OnClick="Reset">Xóa lọc</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ApplyFilter">Áp dụng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public OrderFilterDto CurrentFilters { get; set; } = new();
+
+    [Parameter]
+    public List<User> Users { get; set; } = new();
+
+    [Parameter]
+    public List<Promotion> Promotions { get; set; } = new();
+
+    [Parameter]
+    public List<Category> Categories { get; set; } = new();
+
+    private OrderFilterDto filters = new();
+    private DateTime? startDate;
+    private DateTime? endDate;
+
+    protected override void OnInitialized()
+    {
+        filters = new OrderFilterDto
+        {
+            UserId = CurrentFilters.UserId,
+            PromoId = CurrentFilters.PromoId,
+            Status = CurrentFilters.Status ?? "",
+            CategoryId = CurrentFilters.CategoryId
+        };
+        
+        startDate = CurrentFilters.StartDate;
+        endDate = CurrentFilters.EndDate;
+    }
+
+    private void ApplyFilter()
+    {
+        filters.StartDate = startDate;
+        filters.EndDate = endDate;
+        MudDialog.Close(DialogResult.Ok(filters));
+    }
+
+    private void Reset()
+    {
+        filters = new OrderFilterDto();
+        startDate = null;
+        endDate = null;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

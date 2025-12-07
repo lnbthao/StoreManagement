@@ -1,0 +1,240 @@
+﻿@page "/admin/promotion"
+@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.Helpers
+@using StoreManagement.Shared.Enums
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Khuyến mãi | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">QUẢN LÝ KHUYẾN MÃI</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Success" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => Navigation.NavigateTo("/admin/promotion/add"))"
+                       FullWidth="true">
+                Thêm khuyến mãi
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.FilterList"
+                       OnClick="OpenFilterDialog"
+                       FullWidth="true">
+                Lọc
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="7">
+            <MudTextField @bind-Value="searchText"
+                          Placeholder="Tìm mã khuyến mãi, mô tả..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          DebounceInterval="300"
+                          Clearable="true"
+                          FullWidth="true" />
+        </MudItem>
+    </MudGrid>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <MudText Align="Align.Center" Class="my-5">Đang tải danh sách khuyến mãi...</MudText>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="my-4">
+            <strong>Lỗi:</strong> @errorMessage
+        </MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudTable Items="@filteredPromotions" 
+                      Hover="true" 
+                      Striped="true" 
+                      Dense="true"
+                      Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Mã KM</MudTh>
+                    <MudTh>Mô tả</MudTh>
+                    <MudTh Style="text-align:center">Loại giảm</MudTh>
+                    <MudTh Style="text-align:right">Giá trị</MudTh>
+                    <MudTh Style="text-align:center">Bắt đầu</MudTh>
+                    <MudTh Style="text-align:center">Kết thúc</MudTh>
+                    <MudTh Style="text-align:center">Trạng thái</MudTh>
+                    <MudTh Style="text-align:center">Hành động</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.PromoCode</MudTd>
+                    <MudTd>@(context.Description ?? "â€”")</MudTd>
+                    <MudTd Style="text-align:center">
+                        @if (context.DiscountType == "percent")
+                        {
+                            <MudChip T="string" T="string" Color="Color.Info" Size="Size.Small">Phần trăm</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" T="string" Color="Color.Warning" Size="Size.Small">Số tiền</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        @if (context.DiscountType == "percent")
+                        {
+                            <span>@context.DiscountValue%</span>
+                        }
+                        else
+                        {
+                            <span>@FormatHelper.ToVNPrice(context.DiscountValue)</span>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:center">@(context.StartDate.HasValue ? FormatHelper.ToVNDate(context.StartDate.Value) : "â€”")</MudTd>
+                    <MudTd Style="text-align:center">@(context.EndDate.HasValue ? FormatHelper.ToVNDate(context.EndDate.Value) : "â€”")</MudTd>
+                    <MudTd Style="text-align:center">
+                        @if (context.Status == "active")
+                        {
+                            <MudChip T="string" T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" T="string" Color="Color.Error" Size="Size.Small">Ngừng</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:center">
+                        <MudTooltip Text="Xem">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
+                                         Color="Color.Info" 
+                                         Size="Size.Small"
+                                         OnClick="@(() => OpenViewDialog(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Sá»­a">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                         Color="Color.Primary" 
+                                         Size="Size.Small"
+                                         OnClick="@(() => Navigation.NavigateTo($"/admin/promotion/edit/{context.PromoId}"))" />
+                        </MudTooltip>
+                        <MudTooltip Text="XÃ³a">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                         Color="Color.Error" 
+                                         Size="Size.Small"
+                                         OnClick="@(() => DeletePromotion(context))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+
+        <MudText Typo="Typo.body2" Class="mt-2">
+            Tổng: <strong>@filteredPromotions.Count()</strong> Khuyến mãi
+        </MudText>
+    }
+</MudContainer>
+
+@code {
+    private List<Promotion> promotions = new();
+    private string searchText = "";
+    private bool isLoading = true;
+    private string errorMessage = "";
+
+    private IEnumerable<Promotion> filteredPromotions
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchText))
+                return promotions;
+
+            var search = searchText.ToLower().Trim();
+            return promotions.Where(p =>
+                (p.PromoCode?.ToLower().Contains(search) ?? false) ||
+                (p.Description?.ToLower().Contains(search) ?? false)
+            );
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPromotions();
+    }
+
+    private async Task LoadPromotions()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            var response = await Http.GetFromJsonAsync<List<Promotion>>("api/promotion");
+            promotions = response ?? new List<Promotion>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Không thể tải danh sách khuyến mãi: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenViewDialog(Promotion promotion)
+    {
+        var parameters = new DialogParameters<PromotionViewDialog>
+        {
+            { x => x.Promotion, promotion }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<PromotionViewDialog>("Chi tiết khuyến mãi", parameters, options);
+    }
+
+    private async Task OpenFilterDialog()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<PromotionFilterDialog>("Lọc khuyến mãi", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
+            // TODO: Apply filter logic
+        }
+    }
+
+    private async Task DeletePromotion(Promotion promotion)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Xác nhận xóa",
+            $"Bạn có chắc muốn xóa khuyến mãi '{promotion.PromoCode}'?",
+            yesText: "Xóa",
+            cancelText: "Hủy"
+        );
+
+        if (result == true)
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/promotion/{promotion.PromoId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add($"Đã xóa khuyến mãi '{promotion.PromoCode}'", Severity.Success);
+                    await LoadPromotions();
+                }
+                else
+                {
+                    Snackbar.Add("Không thể xóa khuyến mãi", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

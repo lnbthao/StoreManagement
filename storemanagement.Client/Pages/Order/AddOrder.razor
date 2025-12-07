@@ -1,0 +1,510 @@
+﻿@page "/admin/order/add"
+@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.Helpers
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Tạo đơn hàng | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4 mb-8">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">TẠO ĐƠN HÀNG</MudText>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <MudText Align="Align.Center" Class="my-5">Đang tải dữ liệu...</MudText>
+    }
+    else
+    {
+        <MudPaper Elevation="2" Class="pa-4">
+            <MudGrid Spacing="3">
+                @* Customer Selection *@
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="Customer"
+                                     Label="Khách hàng *"
+                                     @bind-Value="selectedCustomer"
+                                     SearchFunc="SearchCustomers"
+                                     ToStringFunc="@(c => c != null ? $"{c.CustomerName} - {c.Phone}" : "")"
+                                     Variant="Variant.Outlined"
+                                     Dense="true"
+                                     ShowProgressIndicator="true"
+                                     Required="true"
+                                     RequiredError="Vui lòng chọn khách hàng">
+                        <ItemTemplate Context="customer">
+                            <MudText Typo="Typo.body2">@customer.CustomerName</MudText>
+                            <MudText Typo="Typo.caption">@customer.Phone</MudText>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+
+                @* Promotion Selection *@
+                <MudItem xs="12" md="6">
+                    <MudAutocomplete T="Promotion"
+                                     Label="Khuyến mãi (tùy chọn)"
+                                     @bind-Value="selectedPromotion"
+                                     SearchFunc="SearchPromotions"
+                                     ToStringFunc="@(p => p != null ? $"{p.PromoCode} - {(p.DiscountType == "percent" ? p.DiscountValue + "%" : FormatHelper.ToVNPrice(p.DiscountValue))}" : "")"
+                                     Variant="Variant.Outlined"
+                                     Dense="true"
+                                     Clearable="true"
+                                     ShowProgressIndicator="true">
+                        <ItemTemplate Context="promo">
+                            <MudText Typo="Typo.body2">@promo.PromoCode</MudText>
+                            <MudText Typo="Typo.caption">
+                                @(promo.DiscountType == "percent" ? $"{promo.DiscountValue}%" : FormatHelper.ToVNPrice(promo.DiscountValue))
+                            </MudText>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                </MudItem>
+
+                @* Cart Items Section *@
+                <MudItem xs="12">
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" />
+                        Giỏ hàng
+                    </MudText>
+
+                    @foreach (var item in cartItems)
+                    {
+                        <MudPaper Elevation="1" Class="pa-3 mb-3">
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="5">
+                                    <MudSelect T="int?"
+                                               Label="Sản phẩm *"
+                                               Value="@item.ProductId"
+                                               Variant="Variant.Outlined"
+                                               Dense="true"
+                                               Required="true"
+                                               ValueChanged="@((int? val) => OnProductChanged(item, val))">
+                                        @foreach (var product in products)
+                                        {
+                                            <MudSelectItem T="int?" Value="@product.ProductId">
+                                                @product.ProductName (@FormatHelper.ToVNPrice(product.Price))
+                                            </MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                </MudItem>
+
+                                <MudItem xs="12" sm="3">
+                                    <MudNumericField T="int"
+                                                     Label="Số lượng *"
+                                                     Value="@item.Quantity"
+                                                     Variant="Variant.Outlined"
+                                                     Dense="true"
+                                                     Min="1"
+                                                     Max="@item.MaxStock"
+                                                     Required="true"
+                                                     ValueChanged="@((int val) => OnQuantityChanged(item, val))" />
+                                </MudItem>
+
+                                <MudItem xs="12" sm="3">
+                                    <MudTextField T="string"
+                                                  Label="Thành tiền"
+                                                  Value="@FormatHelper.ToVNPrice(item.Subtotal)"
+                                                  Variant="Variant.Outlined"
+                                                  Dense="true"
+                                                  ReadOnly="true"
+                                                  Disabled="true" />
+                                </MudItem>
+
+                                <MudItem xs="12" sm="1" Style="display:flex; align-items:center; justify-content:center;">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveFromCart(item))"
+                                                   Size="Size.Medium" />
+                                </MudItem>
+
+                                @if (item.MaxStock > 0 && item.ProductId.HasValue)
+                                {
+                                    <MudItem xs="12">
+                                        <MudText Typo="Typo.caption" Color="Color.Info">
+                                            Tồn kho: @item.MaxStock
+                                        </MudText>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </MudPaper>
+                    }
+
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddToCart"
+                               Class="mt-2">
+                        Thêm sản phẩm
+                    </MudButton>
+                </MudItem>
+
+                @* Order Summary *@
+                <MudItem xs="12">
+                    <MudDivider Class="my-3" />
+                    <MudPaper Elevation="0" Class="pa-4" Style="background-color: #f5f5f5;">
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body1">Tạm tính:</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body1" Align="Align.Right">@FormatHelper.ToVNPrice(subtotal)</MudText>
+                            </MudItem>
+
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body1" Color="Color.Success">Giảm giá:</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.body1" Align="Align.Right" Color="Color.Success">
+                                    -@FormatHelper.ToVNPrice(discount)
+                                </MudText>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudDivider Class="my-2" />
+                            </MudItem>
+
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.h6">Tổng cộng:</MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.h6" Align="Align.Right" Color="Color.Primary">
+                                    @FormatHelper.ToVNPrice(total)
+                                </MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                </MudItem>
+
+                @* Action Buttons *@
+                <MudItem xs="12" Class="mt-4">
+                    <MudGrid Justify="Justify.Center" Spacing="3">
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Default"
+                                       OnClick="@(() => Navigation.NavigateTo("/admin/order"))"
+                                       FullWidth="true">
+                                Hủy
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="HandleSubmit"
+                                       Disabled="@isSubmitting"
+                                       FullWidth="true">
+                                @if (isSubmitting)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                    <span class="ml-2">Đang xử lý...</span>
+                                }
+                                else
+                                {
+                                    <span>Tạo đơn hàng</span>
+                                }
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    // Data lists
+    private List<Customer> customers = new();
+    private List<Promotion> promotions = new();
+    private List<Product> products = new();
+
+    // Selected values
+    private Customer? selectedCustomer;
+    private Promotion? selectedPromotion;
+
+    // Cart
+    private List<CartItem> cartItems = new();
+
+    // States
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+
+    // Current user
+    private int currentUserId = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        AddToCart(); // Start with one empty item
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+
+            var customerTask = Http.GetFromJsonAsync<List<Customer>>("api/customer");
+            var productTask = Http.GetFromJsonAsync<List<Product>>("api/product");
+            var promotionTask = Http.GetFromJsonAsync<List<Promotion>>("api/promotion?availableOnly=true");
+
+            await Task.WhenAll(customerTask, productTask, promotionTask);
+
+            customers = await customerTask ?? new();
+            products = await productTask ?? new();
+            promotions = await promotionTask ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi tải dữ liệu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Task<IEnumerable<Customer>> SearchCustomers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(customers.AsEnumerable());
+
+        var search = value.ToLower();
+        var filtered = customers.Where(c =>
+            (c.CustomerName?.ToLower().Contains(search) ?? false) ||
+            (c.Phone?.Contains(search) ?? false)
+        );
+
+        return Task.FromResult(filtered);
+    }
+
+    private Task<IEnumerable<Promotion>> SearchPromotions(string value, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(promotions.AsEnumerable());
+
+        var search = value.ToLower();
+        var filtered = promotions.Where(p =>
+            (p.PromoCode?.ToLower().Contains(search) ?? false)
+        );
+
+        return Task.FromResult(filtered);
+    }
+
+    private void AddToCart()
+    {
+        cartItems.Add(new CartItem
+        {
+            Id = Guid.NewGuid(),
+            ProductId = null,
+            Quantity = 1,
+            UnitPrice = 0,
+            Subtotal = 0,
+            MaxStock = 0
+        });
+    }
+
+    private void RemoveFromCart(CartItem item)
+    {
+        cartItems.Remove(item);
+    }
+
+    private void OnProductChanged(CartItem item, int? productId)
+    {
+        item.ProductId = productId;
+
+        if (productId.HasValue)
+        {
+            var product = products.FirstOrDefault(p => p.ProductId == productId.Value);
+            if (product != null)
+            {
+                item.UnitPrice = product.Price;
+                item.MaxStock = product.StockQuantity ?? 0;
+
+                // Adjust quantity if exceeds stock
+                if (item.Quantity > item.MaxStock)
+                {
+                    item.Quantity = item.MaxStock;
+                }
+            }
+        }
+        else
+        {
+            item.UnitPrice = 0;
+            item.MaxStock = 0;
+        }
+
+        item.Subtotal = item.Quantity * item.UnitPrice;
+        CalculateTotals();
+    }
+
+    private void OnQuantityChanged(CartItem item, int quantity)
+    {
+        item.Quantity = Math.Max(1, Math.Min(quantity, item.MaxStock));
+        item.Subtotal = item.Quantity * item.UnitPrice;
+        CalculateTotals();
+    }
+
+    private decimal subtotal;
+    private decimal discount;
+    private decimal total;
+
+    private void CalculateTotals()
+    {
+        subtotal = cartItems.Sum(i => i.Subtotal);
+
+        discount = 0;
+        if (selectedPromotion != null)
+        {
+            if (selectedPromotion.DiscountType == "percent")
+            {
+                discount = subtotal * (selectedPromotion.DiscountValue / 100);
+            }
+            else
+            {
+                discount = selectedPromotion.DiscountValue;
+            }
+
+            // Ensure discount doesn't exceed subtotal
+            if (discount > subtotal)
+                discount = subtotal;
+        }
+
+        total = Math.Max(0, subtotal - discount);
+        StateHasChanged();
+    }
+
+    private async Task HandleSubmit()
+    {
+        // Validation
+        if (selectedCustomer == null)
+        {
+            Snackbar.Add("Vui lòng chọn khách hàng!", Severity.Warning);
+            return;
+        }
+
+        if (cartItems.Count == 0)
+        {
+            Snackbar.Add("Vui lòng thêm sản phẩm vào giỏ hàng!", Severity.Warning);
+            return;
+        }
+
+        if (cartItems.Any(i => !i.ProductId.HasValue))
+        {
+            Snackbar.Add("Vui lòng chọn sản phẩm cho tất cả các mục!", Severity.Warning);
+            return;
+        }
+
+        if (cartItems.Any(i => i.Quantity <= 0))
+        {
+            Snackbar.Add("Số lượng phải lớn hơn 0!", Severity.Warning);
+            return;
+        }
+
+        // Check stock for all items
+        foreach (var item in cartItems)
+        {
+            var product = products.FirstOrDefault(p => p.ProductId == item.ProductId);
+            if (product != null && item.Quantity > (product.StockQuantity ?? 0))
+            {
+                Snackbar.Add($"Sản phẩm '{product.ProductName}' không đủ hàng trong kho! Tồn kho: {product.StockQuantity ?? 0}", Severity.Warning);
+                return;
+            }
+        }
+
+        // Show payment dialog
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var parameters = new DialogParameters<PaymentDialog>
+        {
+            { x => x.TotalAmount, total }
+        };
+
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Chọn phương thức thanh toán", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string paymentMethod)
+        {
+            await SubmitOrder(paymentMethod);
+        }
+    }
+
+    private async Task SubmitOrder(string paymentMethod)
+    {
+        isSubmitting = true;
+
+        try
+        {
+            var orderData = new
+            {
+                customerId = selectedCustomer!.CustomerId,
+                userId = currentUserId,
+                promoId = selectedPromotion?.PromoId,
+                orderDate = DateTime.Now,
+                status = "pending",
+                totalAmount = total,
+                discountAmount = discount,
+                orderItems = cartItems.Select(item => new
+                {
+                    productId = item.ProductId!.Value,
+                    quantity = item.Quantity,
+                    unitPrice = item.UnitPrice,
+                    totalPrice = item.Subtotal
+                }).ToList()
+            };
+
+            var response = await Http.PostAsJsonAsync("api/order", orderData);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var createdOrder = await response.Content.ReadFromJsonAsync<Order>();
+
+                if (paymentMethod == "cash" && createdOrder != null)
+                {
+                    // Update status to paid for cash payment
+                    try
+                    {
+                        await Http.PutAsJsonAsync($"api/order/{createdOrder.OrderId}/status", new { status = "paid" });
+                        Snackbar.Add("Tạo đơn hàng và thanh toán tiền mặt thành công!", Severity.Success);
+                    }
+                    catch
+                    {
+                        Snackbar.Add("Tạo đơn hàng thành công nhưng không thể cập nhật trạng thái thanh toán!", Severity.Warning);
+                    }
+                }
+                else if (paymentMethod == "momo")
+                {
+                    // TODO: Integrate MoMo payment
+                    Snackbar.Add("Tích hợp thanh toán MoMo đang được phát triển", Severity.Info);
+                }
+                else
+                {
+                    Snackbar.Add("Tạo đơn hàng thành công!", Severity.Success);
+                }
+
+                Navigation.NavigateTo("/admin/order");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Lỗi tạo đơn hàng: {error}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private class CartItem
+    {
+        public Guid Id { get; set; }
+        public int? ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal Subtotal { get; set; }
+        public int MaxStock { get; set; }
+    }
+}
