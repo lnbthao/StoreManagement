@@ -27,27 +27,35 @@
                                       Label="Tên khách hàng"
                                       Required="true"
                                       RequiredError="Vui lòng nhập tên khách hàng"
-                                      Variant="Variant.Outlined" />
+                                      Variant="Variant.Outlined"
+                                      Immediate="true" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="customer.Phone"
                                       Label="Số điện thoại"
-                                      Variant="Variant.Outlined" />
+                                      Variant="Variant.Outlined"
+                                      Immediate="true"
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập số điện thoại"
+                                      Validation="@(new Func<string, string>(ValidatePhone))" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="customer.Email"
                                       Label="Email"
                                       Variant="Variant.Outlined"
-                                      InputType="InputType.Email" />
+                                      InputType="InputType.Email"
+                                      Immediate="true"
+                                      Validation="@(new Func<string, string>(ValidateEmail))" />
                     </MudItem>
 
                     <MudItem xs="12">
                         <MudTextField @bind-Value="customer.Address"
                                       Label="Địa chỉ"
                                       Lines="3"
-                                      Variant="Variant.Outlined" />
+                                      Variant="Variant.Outlined"
+                                      Immediate="true" />
                     </MudItem>
 
                     <MudItem xs="12" Class="d-flex gap-2 justify-end">
@@ -85,6 +93,22 @@
     private bool isLoading = false;
     private bool isSaving = false;
     private Customer customer = new() { CreatedAt = DateTime.Now, IsActive = true };
+
+    private string ValidatePhone(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return "Vui lòng nhập số điện thoại";
+        if (!System.Text.RegularExpressions.Regex.IsMatch(phone, @"^0\d{9}$"))
+            return "SĐT không hợp lệ (10 số, bắt đầu bằng 0)";
+        return null;
+    }
+
+    private string ValidateEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return null; // Email không bắt buộc
+        if (!System.Text.RegularExpressions.Regex.IsMatch(email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            return "Email không hợp lệ";
+        return null;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -151,7 +175,16 @@
             }
             else
             {
-                Snackbar.Add("Không thể lưu khách hàng", Severity.Error);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                var errorMsg = response.ReasonPhrase ?? "Lỗi không xác định";
+                try
+                {
+                    var errorJson = System.Text.Json.JsonDocument.Parse(errorContent);
+                    if (errorJson.RootElement.TryGetProperty("message", out var msgProp))
+                        errorMsg = msgProp.GetString() ?? errorMsg;
+                }
+                catch { }
+                Snackbar.Add(errorMsg, Severity.Error);
             }
         }
         catch (Exception ex)

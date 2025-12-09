@@ -24,7 +24,8 @@
                          Adornment="Adornment.Start"
                          AdornmentIcon="@Icons.Material.Filled.Person"
                          Class="mb-4"
-                         Disabled="isLoading" />
+                         Disabled="isLoading"
+                         Immediate="true" />
 
             <MudTextField @bind-Value="loginModel.Password"
                          Label="Mật khẩu"
@@ -36,7 +37,9 @@
                          AdornmentIcon="@passwordIcon"
                          OnAdornmentClick="TogglePasswordVisibility"
                          Class="mb-6"
-                         Disabled="isLoading" />
+                         Disabled="isLoading"
+                         Immediate="true"
+                         OnKeyDown="@(async (e) => { if (e.Key == "Enter") await HandleLogin(); })" />
 
             <MudButton Variant="Variant.Filled"
                       Color="Color.Primary"

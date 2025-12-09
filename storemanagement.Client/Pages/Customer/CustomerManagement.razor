@@ -90,12 +90,24 @@
                                          Size="Size.Small"
                                          OnClick="@(() => Navigation.NavigateTo($"/admin/customer/edit/{context.CustomerId}"))" />
                         </MudTooltip>
-                        <MudTooltip Text="Xóa">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                         Color="Color.Error" 
-                                         Size="Size.Small"
-                                         OnClick="@(() => DeleteCustomer(context))" />
-                        </MudTooltip>
+                        @if (context.IsActive)
+                        {
+                            <MudTooltip Text="Xóa">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                             Color="Color.Error" 
+                                             Size="Size.Small"
+                                             OnClick="@(() => DeleteCustomer(context))" />
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Khôi phục">
+                                <MudIconButton Icon="@Icons.Material.Filled.Restore" 
+                                             Color="Color.Success" 
+                                             Size="Size.Small"
+                                             OnClick="@(() => DeleteCustomer(context))" />
+                            </MudTooltip>
+                        }
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -112,6 +124,7 @@
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
+    private CustomerFilterDto currentFilters = new() { Status = "active" };
 
     private async Task OpenViewDialog(Customer customer)
     {
@@ -126,15 +139,16 @@
     {
         var parameters = new DialogParameters<CustomerFilterDialog>
         {
-            { x => x.CurrentFilters, new CustomerFilterDto() }
+            { x => x.CurrentFilters, currentFilters }
         };
         var dialog = await DialogService.ShowAsync<CustomerFilterDialog>("Lọc khách hàng", parameters);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is CustomerFilterDto filters)
         {
-            // TODO: Apply filters to customer list
-            Snackbar.Add("Chức năng lọc sẽ được cập nhật sau", Severity.Info);
+            currentFilters = filters;
+            await LoadCustomers();
+            Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
         }
     }
 
@@ -165,8 +179,37 @@
         {
             isLoading = true;
             errorMessage = "";
-            var response = await Http.GetFromJsonAsync<List<Customer>>("api/customer");
+            
+            // Build query string from filters
+            var queryParams = new List<string>();
+            
+            if (!string.IsNullOrEmpty(currentFilters.HasPhone))
+                queryParams.Add($"hasPhone={currentFilters.HasPhone}");
+            if (!string.IsNullOrEmpty(currentFilters.HasEmail))
+                queryParams.Add($"hasEmail={currentFilters.HasEmail}");
+            if (!string.IsNullOrEmpty(currentFilters.HasAddress))
+                queryParams.Add($"hasAddress={currentFilters.HasAddress}");
+            if (currentFilters.CreatedFrom.HasValue)
+                queryParams.Add($"createdFrom={currentFilters.CreatedFrom.Value:yyyy-MM-dd}");
+            if (currentFilters.CreatedTo.HasValue)
+                queryParams.Add($"createdTo={currentFilters.CreatedTo.Value:yyyy-MM-dd}");
+            
+            // Handle status filter
+            if (currentFilters.Status == "inactive")
+                queryParams.Add("includeInactive=true");
+            else if (string.IsNullOrEmpty(currentFilters.Status))
+                queryParams.Add("includeInactive=true");
+            
+            var url = "api/customer";
+            if (queryParams.Any())
+                url += "?" + string.Join("&", queryParams);
+            
+            var response = await Http.GetFromJsonAsync<List<Customer>>(url);
             customers = response ?? new List<Customer>();
+            
+            // Client-side filter for inactive only
+            if (currentFilters.Status == "inactive")
+                customers = customers.Where(c => !c.IsActive).ToList();
         }
         catch (Exception ex)
         {
@@ -181,10 +224,11 @@
 
     private async Task DeleteCustomer(Customer customer)
     {
+        var action = customer.IsActive ? "xóa" : "khôi phục";
         var result = await DialogService.ShowMessageBox(
-            "Xác nhận xóa",
-            $"Bạn có chắc muốn xóa khách hàng '{customer.CustomerName}'?",
-            yesText: "Xóa",
+            $"Xác nhận {action}",
+            $"Bạn có chắc muốn {action} khách hàng '{customer.CustomerName}'?",
+            yesText: action,
             cancelText: "Hủy"
         );
 
@@ -195,18 +239,20 @@
                 var response = await Http.DeleteAsync($"api/customer/{customer.CustomerId}");
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add($"Đã xóa khách hàng '{customer.CustomerName}'", Severity.Success);
+                    Snackbar.Add($"Đã {action} khách hàng '{customer.CustomerName}' thành công", Severity.Success);
                     await LoadCustomers();
                 }
                 else
                 {
-                    Snackbar.Add("Không thể xóa khách hàng", Severity.Error);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Lỗi {action}: {(string.IsNullOrEmpty(errorContent) ? response.ReasonPhrase : errorContent)}", Severity.Error);
                 }
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error);
+                Snackbar.Add($"Lỗi khi {action}: {ex.Message}", Severity.Error);
             }
         }
     }
 }
+

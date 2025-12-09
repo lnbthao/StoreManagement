@@ -6,11 +6,10 @@ namespace StoreManagement.Shared.Models;
 public class User
 {
     public int UserId { get; set; }
-    public string Username { get; set; } = null!;
-    public string Password { get; set; } = null!;
-    public string FullName { get; set; } = null!;
-    public string? Phone { get; set; }
-    public string Role { get; set; } = null!; // "admin" or "staff"
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+    public string? FullName { get; set; }
+    public string? Role { get; set; }
     public DateTime? CreatedAt { get; set; }
     public bool IsActive { get; set; } = true;
 }

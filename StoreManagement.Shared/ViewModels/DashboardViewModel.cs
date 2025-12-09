@@ -1,44 +1,52 @@
 namespace StoreManagement.Shared.ViewModels;
 
-/// <summary>
-/// Dashboard statistics view model
-/// </summary>
 public class DashboardViewModel
 {
-    public decimal TodayRevenue { get; set; }
-    public decimal MonthRevenue { get; set; }
-    public int TodayOrders { get; set; }
-    public int MonthOrders { get; set; }
-    public int TotalProducts { get; set; }
-    public int LowStockProducts { get; set; }
-    public int TotalCustomers { get; set; }
-    public int ActivePromotions { get; set; }
-    
-    public List<RecentOrder> RecentOrders { get; set; } = new();
-    public List<TopProduct> TopProducts { get; set; } = new();
-    public List<RevenueByDate> RevenueChart { get; set; } = new();
+    public DashboardOverviewDto Overview { get; set; } = new();
+    public List<RevenueChartDto> RevenueData { get; set; } = new();
+    public OrderStatsDto OrderStats { get; set; } = new();
+    public List<TopProductDto> TopProducts { get; set; } = new();
+    public List<RecentOrderDto> RecentOrders { get; set; } = new();
 }
 
-public class RecentOrder
+public class DashboardOverviewDto
+{
+    public decimal TotalRevenue { get; set; }
+    public int TotalOrders { get; set; }
+    public int TotalProducts { get; set; }
+    public int TotalCustomers { get; set; }
+}
+
+public class RevenueChartDto
+{
+    public string Date { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
+}
+
+public class OrderStatsDto
+{
+    public int Pending { get; set; }
+    public int Paid { get; set; }
+    public int Canceled { get; set; }
+}
+
+public class TopProductDto
+{
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int TotalQuantity { get; set; }
+    public decimal TotalRevenue { get; set; }
+}
+
+public class RecentOrderDto
 {
     public int OrderId { get; set; }
     public DateTime OrderDate { get; set; }
-    public string? CustomerName { get; set; }
+    public string CustomerName { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
-    public string Status { get; set; } = null!;
+    public decimal DiscountAmount { get; set; }
+    public decimal FinalAmount { get; set; }
 }
 
-public class TopProduct
-{
-    public int ProductId { get; set; }
-    public string ProductName { get; set; } = null!;
-    public int TotalSold { get; set; }
-    public decimal Revenue { get; set; }
-}
-
-public class RevenueByDate
-{
-    public DateTime Date { get; set; }
-    public decimal Revenue { get; set; }
-    public int OrderCount { get; set; }
-}

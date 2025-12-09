@@ -41,13 +41,17 @@ public class AuthService : IAuthService
 
                     return result;
                 }
+                
+                // Login failed but we have a message from backend
+                return result;
             }
 
-            return null;
+            // HTTP error
+            return new LoginResponseDto { Success = false, Message = "Lỗi kết nối máy chủ" };
         }
         catch
         {
-            return null;
+            return new LoginResponseDto { Success = false, Message = "Không thể kết nối đến máy chủ" };
         }
     }
 

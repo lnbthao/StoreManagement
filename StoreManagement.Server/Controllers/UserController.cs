@@ -33,11 +33,18 @@ public class UserController : Controller
         */
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
 
-        if (user is null || !user.IsActive)
+        if (user is null)
             return Ok(new LoginResponseDto 
             { 
                 Success = false, 
-                Message = "Tài khoản không tồn tại hoặc bị khóa!" 
+                Message = "Tài khoản không tồn tại!" 
+            });
+
+        if (!user.IsActive)
+            return Ok(new LoginResponseDto 
+            { 
+                Success = false, 
+                Message = "Tài khoản đã bị khóa!" 
             });
 
         // Chỗ này username đúng rồi, chỉ cần check password
@@ -129,16 +136,22 @@ public class UserController : Controller
     // [Authorize]
     public async Task<IActionResult> CreateUser([FromBody] User u)
     {
-        if (string.IsNullOrWhiteSpace(u.Username) || string.IsNullOrWhiteSpace(u.Password))
-            return BadRequest(new { message = "Thiếu username hoặc password" });
+        if (string.IsNullOrWhiteSpace(u.FullName))
+            return BadRequest(new { field = "fullName", message = "Vui lòng nhập họ tên" });
+        if (string.IsNullOrWhiteSpace(u.Username))
+            return BadRequest(new { field = "username", message = "Vui lòng nhập username" });
+        if (string.IsNullOrWhiteSpace(u.Password))
+            return BadRequest(new { field = "password", message = "Vui lòng nhập mật khẩu" });
 
         if (await _db.Users.AnyAsync(x => x.Username == u.Username))
-            return Conflict(new { message = "Username đã tồn tại" });
+            return Conflict(new { field = "username", message = "Username đã tồn tại" });
 
         u.Password = BCrypt.Net.BCrypt.HashPassword(u.Password);
         u.IsActive = true;
         _db.Users.Add(u);
-        return await _db.SaveChangesAsync() > 0 ? StatusCode(201) : StatusCode(400);
+        return await _db.SaveChangesAsync() > 0
+            ? StatusCode(201)
+            : StatusCode(400, new { field = (string?)null, message = "Không thể tạo người dùng" });
     }
 
     [HttpPut("{id}")]
@@ -148,15 +161,24 @@ public class UserController : Controller
         var user = await _db.Users.FirstOrDefaultAsync(x => x.UserId == id);
         if (user is null) return NotFound();
 
+        if (string.IsNullOrWhiteSpace(u.FullName))
+            return BadRequest(new { field = "fullName", message = "Vui lòng nhập họ tên" });
+
         user.FullName = u.FullName;
         user.Role = u.Role;
+        user.IsActive = u.IsActive;
+
         if (!string.IsNullOrWhiteSpace(u.Password))
         {
+            if (u.Password.Length < 6)
+                return BadRequest(new { field = "password", message = "Mật khẩu tối thiểu 6 ký tự" });
             user.Password = BCrypt.Net.BCrypt.HashPassword(u.Password);
         }
 
         _db.Users.Update(user);
-        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+        return await _db.SaveChangesAsync() > 0
+            ? Ok()
+            : StatusCode(400, new { field = (string?)null, message = "Không thể cập nhật người dùng" });
     }
 
     [HttpDelete("{id}")]

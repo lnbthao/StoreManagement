@@ -86,10 +86,20 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
                                          OnClick="@(() => Navigation.NavigateTo($"/admin/user/edit/{context.UserId}"))" />
                         </MudTooltip>
-                        <MudTooltip Text="Xóa">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                         OnClick="@(() => DeleteUser(context))" />
-                        </MudTooltip>
+                        @if (context.IsActive)
+                        {
+                            <MudTooltip Text="Xóa">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                             OnClick="@(() => DeleteUser(context))" />
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Khôi phục">
+                                <MudIconButton Icon="@Icons.Material.Filled.Restore" Color="Color.Success" Size="Size.Small"
+                                             OnClick="@(() => DeleteUser(context))" />
+                            </MudTooltip>
+                        }
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -103,6 +113,7 @@
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
+    private UserFilterDto currentFilters = new() { Status = "active" };
 
     private IEnumerable<User> filteredUsers
     {
@@ -125,8 +136,29 @@
         {
             isLoading = true;
             errorMessage = "";
-            var response = await Http.GetFromJsonAsync<List<User>>("api/user");
+            
+            // Build query string from filters
+            var queryParams = new List<string>();
+            
+            if (!string.IsNullOrEmpty(currentFilters.Role))
+                queryParams.Add($"role={currentFilters.Role}");
+            
+            // Handle status filter
+            if (currentFilters.Status == "inactive")
+                queryParams.Add("includeInactive=true");
+            else if (string.IsNullOrEmpty(currentFilters.Status))
+                queryParams.Add("includeInactive=true");
+            
+            var url = "api/user";
+            if (queryParams.Any())
+                url += "?" + string.Join("&", queryParams);
+            
+            var response = await Http.GetFromJsonAsync<List<User>>(url);
             users = response ?? new List<User>();
+            
+            // Client-side filter for inactive only
+            if (currentFilters.Status == "inactive")
+                users = users.Where(u => !u.IsActive).ToList();
         }
         catch (Exception ex)
         {
@@ -149,22 +181,29 @@
 
     private async Task OpenFilterDialog()
     {
+        var parameters = new DialogParameters<UserFilterDialog>
+        {
+            { x => x.CurrentFilters, currentFilters }
+        };
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<UserFilterDialog>("Lọc người dùng", options);
+        var dialog = await DialogService.ShowAsync<UserFilterDialog>("Lọc người dùng", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data != null)
+        if (!result.Canceled && result.Data is UserFilterDto filters)
         {
+            currentFilters = filters;
+            await LoadUsers();
             Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
-            // TODO: Apply filter logic
         }
     }
 
     private async Task DeleteUser(User user)
     {
-        var result = await DialogService.ShowMessageBox("Xác nhận xóa",
-            $"Bạn có chắc muốn xóa người dùng '{user.Username}'?",
-            yesText: "Xóa", cancelText: "Hủy");
+        var action = user.IsActive ? "Khóa" : "Khôi phục";
+        var result = await DialogService.ShowMessageBox(
+            $"Xác nhận {action}",
+            $"Bạn có chắc muốn {action} người dùng '{user.Username}'?",
+            yesText: action, cancelText: "Hủy");
 
         if (result == true)
         {
@@ -173,12 +212,17 @@
                 var response = await Http.DeleteAsync($"api/user/{user.UserId}");
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add($"Đã xóa người dùng '{user.Username}'", Severity.Success);
+                    Snackbar.Add($"Đã {action} người dùng '{user.Username}'", Severity.Success);
                     await LoadUsers();
                 }
-                else { Snackbar.Add("Không thể xóa người dùng", Severity.Error); }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Snackbar.Add($"Lỗi xóa: {(string.IsNullOrEmpty(errorContent) ? response.ReasonPhrase : errorContent)}", Severity.Error);
+                }
             }
             catch (Exception ex) { Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error); }
         }
     }
 }
+

@@ -3,7 +3,7 @@
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 
-<MudThemeProvider />
+<MudThemeProvider Theme="@_theme" @bind-IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -23,7 +23,7 @@
         {
             <MudProgressCircular Size="Size.Small" Indeterminate="true" />
         }
-        <MudIconButton Icon="@Icons.Material.Filled.Brightness4" Color="Color.Inherit" Title="Chế độ tối" />
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="ToggleTheme" Title="@(_isDarkMode ? "Chế độ sáng" : "Chế độ tối")" />
         <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="HandleLogout" Title="Đăng xuất" />
     </MudAppBar>
     
@@ -51,6 +51,41 @@
     private bool drawerOpen = true;
     private StoreManagement.Shared.DTOs.UserInfoDto? currentUser;
     private bool isLoaded = false;
+    private bool _isDarkMode = false;
+
+    private MudTheme _theme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#5E35B1",
+            Secondary = "#7C4DFF",
+            Success = "#4CAF50",
+            Info = "#2196F3",
+            Warning = "#FF9800",
+            Error = "#F44336",
+            Background = "#F5F5F5",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#5E35B1",
+            DrawerBackground = "#FFFFFF",
+            TextPrimary = "#424242",
+            TextSecondary = "#757575"
+        },
+        PaletteDark = new PaletteDark()
+        {
+            Primary = "#7C4DFF",
+            Secondary = "#5E35B1",
+            Success = "#66BB6A",
+            Info = "#29B6F6",
+            Warning = "#FFA726",
+            Error = "#EF5350",
+            Background = "#121212",
+            Surface = "#1E1E1E",
+            AppbarBackground = "#1E1E1E",
+            DrawerBackground = "#1E1E1E",
+            TextPrimary = "#E0E0E0",
+            TextSecondary = "#B0B0B0"
+        }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -66,6 +101,11 @@
         {
             isLoaded = true;
         }
+    }
+
+    private void ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
     }
 
     private async Task HandleLogout()

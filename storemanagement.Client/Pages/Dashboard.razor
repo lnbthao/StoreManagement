@@ -2,175 +2,350 @@
 @page "/admin/dashboard"
 @using StoreManagement.Shared.ViewModels
 @inject HttpClient Http
+@inject NavigationManager Nav
 
 <PageTitle>Dashboard | Quản lý kho hàng</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Dashboard</MudText>
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4 text-uppercase">Thống kê</MudText>
 
-@if (isLoading)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-}
-else
-{
-    <MudGrid>
-        @* Revenue Statistics *@
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Doanh thu hôm nay</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Success">
-                        @FormatHelper.ToVNPrice(dashboard?.TodayRevenue ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+    @if (IsLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center" style="height: 80vh">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+        </div>
+    }
+    else
+    {
+        <MudGrid Class="mb-4" Spacing="3">
+            @* Summary Cards *@
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="3" Class="pa-4 border-l-4 border-success rounded">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <div>
+                            <MudText Typo="Typo.subtitle2" Class="text-muted mb-1">Tổng doanh thu</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@FormatHelper.ToVNPrice(dashboard.Overview.TotalRevenue)</MudText>
+                        </div>
+                        <MudAvatar Variant="Variant.Filled" Size="Size.Large" Class="rounded" Style="background-color: rgba(76, 175, 80, 0.1); color: var(--mud-palette-success);">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Medium" />
+                        </MudAvatar>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                 <MudPaper Elevation="3" Class="pa-4 border-l-4 border-primary rounded">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <div>
+                            <MudText Typo="Typo.subtitle2" Class="text-muted mb-1">Tổng đơn hàng</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@dashboard.Overview.TotalOrders</MudText>
+                        </div>
+                        <MudAvatar Variant="Variant.Filled" Size="Size.Large" Class="rounded" Style="background-color: rgba(89, 74, 226, 0.1); color: var(--mud-palette-primary);">
+                            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Size="Size.Medium" />
+                        </MudAvatar>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                 <MudPaper Elevation="3" Class="pa-4 border-l-4 border-info rounded">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <div>
+                            <MudText Typo="Typo.subtitle2" Class="text-muted mb-1">Tổng sản phẩm</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Info">@dashboard.Overview.TotalProducts</MudText>
+                        </div>
+                        <MudAvatar Variant="Variant.Filled" Size="Size.Large" Class="rounded" Style="background-color: rgba(33, 150, 243, 0.1); color: var(--mud-palette-info);">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Medium" />
+                        </MudAvatar>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                 <MudPaper Elevation="3" Class="pa-4 border-l-4 border-warning rounded">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                        <div>
+                            <MudText Typo="Typo.subtitle2" Class="text-muted mb-1">Tổng khách hàng</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Warning">@dashboard.Overview.TotalCustomers</MudText>
+                        </div>
+                        <MudAvatar Variant="Variant.Filled" Size="Size.Large" Class="rounded" Style="background-color: rgba(255, 152, 0, 0.1); color: var(--mud-palette-warning);">
+                            <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Medium" />
+                        </MudAvatar>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
 
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Doanh thu tháng</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Primary">
-                        @FormatHelper.ToVNPrice(dashboard?.MonthRevenue ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+        <MudGrid Class="mb-4" Spacing="3">
+            @* Revenue Chart *@
+            <MudItem xs="12" md="8">
+                <MudPaper Elevation="3" Class="pa-4" Style="height: 100%;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+                    <MudText Typo="Typo.h6">Doanh thu</MudText>
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="@(RevenuePeriod == "daily" ? Variant.Filled : Variant.Text)" Color="Color.Primary" Size="Size.Small" OnClick="@(() => SetRevenuePeriod("daily"))">7 Ngày</MudButton>
+                        <MudButton Variant="@(RevenuePeriod == "monthly" ? Variant.Filled : Variant.Text)" Color="Color.Primary" Size="Size.Small" OnClick="@(() => SetRevenuePeriod("monthly"))">1 Tháng</MudButton>
+                        <MudButton Variant="@(RevenuePeriod == "yearly" ? Variant.Filled : Variant.Text)" Color="Color.Primary" Size="Size.Small" OnClick="@(() => SetRevenuePeriod("yearly"))">1 Năm</MudButton>
+                    </MudStack>
+                </MudStack>
+                
+                @if (dashboard.RevenueData != null && dashboard.RevenueData.Any())
+                {
+                    <div class="d-block" style="width: 100%;">
+                        <MudChart ChartType="ChartType.Line" ChartOptions="@RevenueChartOptions" ChartSeries="@RevenueSeries" XAxisLabels="@RevenueLabels" Width="100%" Height="400px" />
+                    </div>
+                }
+                else 
+                {
+                     <MudText Align="Align.Center" Class="py-10">Chưa có dữ liệu doanh thu</MudText>
+                }
+                </MudPaper>
+            </MudItem>
 
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Đơn hàng hôm nay</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Info">
-                        @(dashboard?.TodayOrders ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+            @* Order Status Chart *@
+            <MudItem xs="12" md="4">
+                <MudPaper Elevation="3" Class="pa-4" Style="height: 100%;">
+                    <MudText Typo="Typo.h6" Class="mb-4">Trạng thái đơn hàng</MudText>
+                    @if (OrderStatusData.Any(x => x > 0))
+                    {
+                        <div style="width: 100%;">
+                            <MudChart ChartType="ChartType.Donut" InputData="@OrderStatusData" InputLabels="@OrderStatusLabels" Width="100%" Height="300px">
+                                <CustomGraphics>
+                                    <text class="donut-inner-text" x="50%" y="35%" dominant-baseline="middle" text-anchor="middle" fill="var(--mud-palette-text-primary)" font-family="Helvetica" font-size="3">Tổng</text>
+                                    <text class="donut-inner-text" x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="var(--mud-palette-text-primary)" font-family="Helvetica" font-size="6">@dashboard.Overview.TotalOrders</text>
+                                </CustomGraphics>
+                            </MudChart>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Align="Align.Center" Class="py-10">Chưa có đơn hàng</MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
 
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Sản phẩm sắp hết</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Warning">
-                        @(dashboard?.LowStockProducts ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        @* Recent Orders *@
-        <MudItem xs="12" md="8">
-            <MudCard Elevation="2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Đơn hàng gần đây</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudSimpleTable Dense="true" Hover="true">
-                        <thead>
-                            <tr>
-                                <th>Mã ĐH</th>
-                                <th>Khách hàng</th>
-                                <th>Tổng tiền</th>
-                                <th>Trạng thái</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (dashboard?.RecentOrders?.Any() == true)
-                            {
-                                @foreach (var order in dashboard.RecentOrders.Take(5))
+        <MudGrid Spacing="3">
+            @* Top Products Table *@
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="3" Class="pa-4" Style="height: 100%;">
+                    <MudText Typo="Typo.h6" Class="mb-4">Sản phẩm bán chạy</MudText>
+                    <div class="table-responsive">
+                         <MudSimpleTable Hover="true" Dense="true" Style="overflow-x: auto;">
+                            <thead>
+                                <tr>
+                                    <th>Tên sản phẩm</th>
+                                    <th class="text-right">Đã bán</th>
+                                    <th class="text-right">Doanh thu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (dashboard.TopProducts != null && dashboard.TopProducts.Any())
+                                {
+                                    @foreach (var product in dashboard.TopProducts)
+                                    {
+                                        <tr style="height: 50px;">
+                                            <td>
+                                                <div class="d-flex align-center">
+                                                    <MudAvatar Size="Size.Small" Color="Color.Primary" Class="mr-2">@product.ProductName.FirstOrDefault()</MudAvatar>
+                                                    <div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                        @product.ProductName
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-right">@product.TotalQuantity</td>
+                                            <td class="text-right">@FormatHelper.ToVNPrice(product.TotalRevenue)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
                                 {
                                     <tr>
-                                        <td>#@order.OrderId</td>
-                                        <td>@order.CustomerName</td>
-                                        <td>@FormatHelper.ToVNPrice(order.TotalAmount)</td>
-                                        <td>
-                                            <MudChip T="string" T="string" Size="Size.Small" Color="GetStatusColor(order.Status)">
-                                                @GetStatusText(order.Status)
-                                            </MudChip>
-                                        </td>
+                                        <td colspan="3" class="text-center py-4">Chưa có dữ liệu</td>
                                     </tr>
                                 }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="4" class="text-center">Chưa có đơn hàng</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </MudSimpleTable>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
+                            </tbody>
+                        </MudSimpleTable>
+                    </div>
+                </MudPaper>
+            </MudItem>
 
-        @* Quick Stats *@
-        <MudItem xs="12" md="4">
-            <MudCard Elevation="2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Thống kê nhanh</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudList T="string" Dense="true">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Inventory">
-                            <MudText>Tổng sản phẩm: <strong>@(dashboard?.TotalProducts ?? 0)</strong></MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.People">
-                            <MudText>Tổng khách hàng: <strong>@(dashboard?.TotalCustomers ?? 0)</strong></MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.LocalOffer">
-                            <MudText>Khuyến Mãi đang Chạy: <strong>@(dashboard?.ActivePromotions ?? 0)</strong></MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.ShoppingCart">
-                            <MudText>Đơn hàng tháng này: <strong>@(dashboard?.MonthOrders ?? 0)</strong></MudText>
-                        </MudListItem>
-                    </MudList>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
-}
+            @* Recent Orders Table *@
+            <MudItem xs="12" md="6">
+                <MudPaper Elevation="3" Class="pa-4" Style="height: 100%;">
+                    <MudText Typo="Typo.h6" Class="mb-4">Đơn hàng gần đây</MudText>
+                    <div class="table-responsive">
+                        <MudSimpleTable Hover="true" Dense="true" Style="overflow-x: auto;">
+                            <thead>
+                                <tr>
+                                    <th>Mã ĐH</th>
+                                    <th>Khách hàng</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (dashboard.RecentOrders != null && dashboard.RecentOrders.Any())
+                                {
+                                    @foreach (var order in dashboard.RecentOrders)
+                                    {
+                                        <tr style="height: 50px;">
+                                            <td>#@order.OrderId</td>
+                                            <td>
+                                                <div style="max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                    @order.CustomerName
+                                                </div>
+                                            </td>
+                                            <td>@FormatHelper.ToVNPrice(order.FinalAmount)</td>
+                                            <td>
+                                                <MudChip T="string" Color="GetStatusColor(order.Status)" Size="Size.Small">@GetStatusText(order.Status)</MudChip>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4">Chưa có đơn hàng nào</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
 
 @code {
-    private DashboardViewModel? dashboard;
-    private bool isLoading = true;
+    private DashboardViewModel dashboard { get; set; } = new();
+    private bool IsLoading { get; set; } = true;
+    private string RevenuePeriod { get; set; } = "daily";
+
+    // Chart Data Config
+    public List<ChartSeries> RevenueSeries { get; set; } = new();
+    public string[] RevenueLabels { get; set; } = Array.Empty<string>();
+    public ChartOptions RevenueChartOptions { get; set; } = new ChartOptions();
+
+    public double[] OrderStatusData { get; set; } = Array.Empty<double>();
+    public string[] OrderStatusLabels { get; set; } = { "Chờ xử lý", "Đã thanh toán", "Đã hủy" };
+
+    public List<ChartSeries> TopProductSeries { get; set; } = new();
+    public string[] TopProductLabels { get; set; } = Array.Empty<string>();
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadDashboard();
+        // Configure Chart Options
+        RevenueChartOptions.YAxisFormat = "N0";
+        await LoadData();
     }
 
-    private async Task LoadDashboard()
+    private async Task LoadData()
     {
-        isLoading = true;
+        IsLoading = true;
         try
         {
-            // TODO: Implement actual API call
-            // var response = await Http.GetAsync("/api/dashboard");
-            // dashboard = await response.Content.ReadFromJsonAsync<DashboardViewModel>();
-
-            // Mock data for now
-            dashboard = new DashboardViewModel
+            var tasks = new List<Task>
             {
-                TodayRevenue = 5000000,
-                MonthRevenue = 150000000,
-                TodayOrders = 12,
-                MonthOrders = 350,
-                TotalProducts = 250,
-                LowStockProducts = 8,
-                TotalCustomers = 180,
-                ActivePromotions = 3,
-                RecentOrders = new List<RecentOrder>()
+                GetOverview(),
+                GetRevenue(),
+                GetOrderStats(),
+                GetTopProducts(),
+                GetRecentOrders()
             };
+
+            await Task.WhenAll(tasks);
         }
-        catch
+        catch (Exception ex)
         {
-            // Handle error
+            Console.WriteLine($"Error loading dashboard: {ex.Message}");
+            // Handle error (maybe show toast)
         }
         finally
         {
-            isLoading = false;
+            IsLoading = false;
         }
+    }
+
+    private async Task GetOverview()
+    {
+        var result = await Http.GetFromJsonAsync<DashboardOverviewDto>("api/statistics/overview");
+        if (result != null) dashboard.Overview = result;
+    }
+
+    private async Task GetRevenue()
+    {
+        var result = await Http.GetFromJsonAsync<List<RevenueChartDto>>($"api/statistics/revenue?period={RevenuePeriod}");
+        if (result != null) {
+            dashboard.RevenueData = result;
+            
+            RevenueSeries = new List<ChartSeries>()
+            {
+                new ChartSeries() { Name = "Doanh thu", Data = dashboard.RevenueData.Select(x => (double)x.Revenue).ToArray() }
+            };
+            
+            // Sparsify labels to avoid overlap
+            var labels = dashboard.RevenueData.Select(x => x.Date).ToArray();
+            var count = labels.Length;
+            var sparsifiedLabels = new string[count];
+            
+            // Determine step based on count to keep it readable (e.g. max 10 labels)
+            int step = (int)Math.Ceiling(count / 10.0);
+            if (step < 1) step = 1;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (i % step == 0 || i == count - 1) // Always show first and last if possible, or just step
+                {
+                    sparsifiedLabels[i] = labels[i];
+                }
+                else
+                {
+                    sparsifiedLabels[i] = "";
+                }
+            }
+            
+            RevenueLabels = sparsifiedLabels;
+        }
+    }
+
+    private async Task GetOrderStats()
+    {
+        var result = await Http.GetFromJsonAsync<OrderStatsDto>("api/statistics/orders");
+        if (result != null) 
+        {
+            dashboard.OrderStats = result;
+            OrderStatusData = new double[] { 
+                (double)dashboard.OrderStats.Pending, 
+                (double)dashboard.OrderStats.Paid, 
+                (double)dashboard.OrderStats.Canceled 
+            };
+        }
+    }
+
+    private async Task GetTopProducts()
+    {
+        var result = await Http.GetFromJsonAsync<List<TopProductDto>>("api/statistics/top-products?limit=5");
+        if (result != null)
+        {
+            dashboard.TopProducts = result;
+            
+            TopProductSeries = new List<ChartSeries>()
+            {
+                new ChartSeries() { Name = "Số lượng bán", Data = dashboard.TopProducts.Select(x => (double)x.TotalQuantity).ToArray() }
+            };
+            TopProductLabels = dashboard.TopProducts.Select(x => Truncate(x.ProductName, 15)).ToArray();
+        }
+    }
+
+    private async Task GetRecentOrders()
+    {
+        var result = await Http.GetFromJsonAsync<List<RecentOrderDto>>("api/statistics/recent-orders?limit=5");
+        if (result != null) dashboard.RecentOrders = result;
+    }
+
+    private async Task SetRevenuePeriod(string period)
+    {
+        RevenuePeriod = period;
+        await GetRevenue();
     }
 
     private Color GetStatusColor(string status)
@@ -179,7 +354,7 @@ else
         {
             "pending" => Color.Warning,
             "paid" => Color.Success,
-            "canceled" or "cancelled" => Color.Error,
+            "canceled" => Color.Error,
             _ => Color.Default
         };
     }
@@ -188,10 +363,15 @@ else
     {
         return status?.ToLower() switch
         {
-            "pending" => "Chờ thanh toán",
+            "pending" => "Chờ xử lý",
             "paid" => "Đã thanh toán",
-            "canceled" or "cancelled" => "Đã hủy",
-            _ => status ?? ""
+            "canceled" => "Đã hủy",
+            _ => status
         };
+    }
+
+    private string Truncate(string value, int maxChars)
+    {
+        return value.Length <= maxChars ? value : value.Substring(0, maxChars) + "...";
     }
 }
