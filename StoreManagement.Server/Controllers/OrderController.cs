@@ -188,7 +188,7 @@ namespace StoreManagement.Server.Controllers
                         // Check usage limit
                         var usedCount = promo.UsedCount ?? 0;
                         var usageLimit = promo.UsageLimit ?? 0;
-                        var hasUsageLeft = usageLimit == 0 || usedCount < usageLimit;
+                        var hasUsageLeft = usageLimit == -1 || usedCount < usageLimit;
                         
                         if (!isActive)
                         {
