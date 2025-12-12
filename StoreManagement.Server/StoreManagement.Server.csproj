@@ -4,16 +4,10 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <SpaRoot>..\storemanagement.client</SpaRoot>
-    <SpaProxyLaunchCommand>npm run dev</SpaProxyLaunchCommand>
-    <SpaProxyServerUrl>https://localhost:60157</SpaProxyServerUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.9" />
-    <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
-      <Version>9.*-*</Version>
-    </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.6">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -29,9 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\storemanagement.client\storemanagement.client.esproj">
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+    <ProjectReference Include="..\StoreManagement.Shared\StoreManagement.Shared.csproj" />
   </ItemGroup>
 
 </Project>

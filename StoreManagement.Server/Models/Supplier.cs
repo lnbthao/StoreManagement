@@ -15,7 +15,7 @@ public partial class Supplier
 
     public string? Address { get; set; }
 
-    public bool IsActive { get; set; } = true; // ← Sửa từ bool? thành bool
+    public bool? IsActive { get; set; }
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 }

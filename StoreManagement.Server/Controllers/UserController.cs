@@ -1,12 +1,13 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using BCrypt.Net;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using StoreManagement.Server.Models;
+using StoreManagement.Shared.DTOs;
 
 namespace StoreManagement.Server.Controllers;
 
@@ -23,23 +24,46 @@ public class UserController : Controller
         _config = config;
     }
 
-    public record LoginRequest(string Username, string Password);
-
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
-        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
-            return BadRequest(new { message = "Thiếu thông tin đăng nhập" });
-
+        /*
+         Không cần kiểm tra khoảng trắng, do bên frontend đảm trách rồi.
+         Ở đây chỉ kiểm tra thông tin đăng nhập thôi.
+        */
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+
         if (user is null || !user.IsActive)
-            return Unauthorized(new { message = "Tài khoản không tồn tại hoặc bị khóa" });
+            return Ok(new LoginResponseDto 
+            { 
+                Success = false, 
+                Message = "Tài khoản không tồn tại hoặc bị khóa!" 
+            });
 
+        // Chỗ này username đúng rồi, chỉ cần check password
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.Password))
-            return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
+            return Ok(new LoginResponseDto 
+            { 
+                Success = false, 
+                Message = "Sai mật khẩu!" 
+            });
 
+        // Generate Jwt Token và trả về
         var token = GenerateJwtToken(user);
-        return Ok(new { token, user = new { user.UserId, user.Username, user.FullName, user.Role } });
+        
+        return Ok(new LoginResponseDto 
+        { 
+            Success = true,
+            Message = "Đăng nhập thành công",
+            Token = token,
+            User = new UserInfoDto
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                FullName = user.FullName,
+                Role = user.Role
+            }
+        });
     }
 
     [HttpGet]

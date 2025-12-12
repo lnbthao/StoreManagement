@@ -1,0 +1,177 @@
+@page "/admin/supplier/add"
+@page "/admin/supplier/edit/{id:int}"
+@using StoreManagement.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>@(Id.HasValue ? "Sửa" : "Thêm") nhà cung cấp | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+        @(Id.HasValue ? "SỬA NHÀ CUNG CẤP" : "THÊM NHÀ CUNG CẤP")
+    </MudText>
+
+    <MudPaper Elevation="2" Class="pa-6">
+        @if (isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            <MudText Align="Align.Center" Class="my-4">Đang tải...</MudText>
+        }
+        else
+        {
+            <MudForm @ref="form" @bind-IsValid="@isFormValid">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="supplier.SupplierName"
+                                      Label="Tên nhà cung cấp"
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập tên nhà cung cấp"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="supplier.ContactName"
+                                      Label="Người liên hệ"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="supplier.Phone"
+                                      Label="Số điện thoại"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="supplier.Email"
+                                      Label="Email"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Email" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="supplier.Address"
+                                      Label="Địa chỉ"
+                                      Lines="3"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="supplier.IsActive" 
+                                   Color="Color.Success"
+                                   Label="Hoạt động" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex gap-2 justify-end">
+                        <MudButton Variant="Variant.Outlined"
+                                   OnClick="@(() => Navigation.NavigateTo("/admin/supplier"))">
+                            Hủy
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SaveSupplier"
+                                   Disabled="@(!isFormValid || isSaving)">
+                            @if (isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <span class="ml-2">Đang lưu...</span>
+                            }
+                            else
+                            {
+                                <span>@(Id.HasValue ? "Cập nhật" : "Thêm mới")</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private MudForm form;
+    private bool isFormValid;
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private Supplier supplier = new() { IsActive = true };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            await LoadSupplier();
+        }
+    }
+
+    private async Task LoadSupplier()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await Http.GetFromJsonAsync<Supplier>($"api/supplier/{Id}");
+            if (response != null)
+            {
+                supplier = response;
+            }
+            else
+            {
+                Snackbar.Add("Không tìm thấy nhà cung cấp", Severity.Error);
+                Navigation.NavigateTo("/admin/supplier");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi khi tải dữ liệu: {ex.Message}", Severity.Error);
+            Navigation.NavigateTo("/admin/supplier");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveSupplier()
+    {
+        await form.Validate();
+        if (!isFormValid) return;
+
+        try
+        {
+            isSaving = true;
+            HttpResponseMessage response;
+
+            if (Id.HasValue)
+            {
+                response = await Http.PutAsJsonAsync($"api/supplier/{Id}", supplier);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/supplier", supplier);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(
+                    Id.HasValue ? "Cập nhật nhà cung cấp thành công" : "Thêm nhà cung cấp thành công",
+                    Severity.Success
+                );
+                Navigation.NavigateTo("/admin/supplier");
+            }
+            else
+            {
+                Snackbar.Add("Không thể lưu nhà cung cấp", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi khi lưu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

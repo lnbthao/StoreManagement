@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -9,54 +9,18 @@ namespace StoreManagement.Server.Controllers;
 [Route("/api/[controller]")]
 public class CustomerController : Controller
 {
-    private readonly ILogger<CustomerController> _logger;
-    private readonly StoreManagementContext _dbContext;
+    private readonly StoreManagementContext _db;
 
-    public CustomerController(ILogger<CustomerController> logger, StoreManagementContext dbContext)
+    public CustomerController(StoreManagementContext db)
     {
-        _logger = logger;
-        _dbContext = dbContext;
-    }
-
-    // 🔍 Tìm theo số điện thoại
-    // /api/customer/search?phone=0901234567
-    [HttpGet("search")]
-    public async Task<IActionResult> SearchCustomer([FromQuery] string? phone)
-    {
-        if (string.IsNullOrWhiteSpace(phone))
-        {
-            return BadRequest(new { message = "Vui lòng nhập số điện thoại." });
-        }
-
-        var customer = await _dbContext.Customers
-            .FirstOrDefaultAsync(c => c.Phone == phone);
-
-        if (customer == null)
-        {
-            return Ok(new
-            {
-                isGuest = true,
-                customerId = 1,
-                customerName = "Khách vãng lai",
-                phone = "",
-                address = ""
-            });
-        }
-
-        return Ok(new
-        {
-            isGuest = false,
-            customer.CustomerId,
-            customer.Name,
-            customer.Phone,
-            customer.Address
-        });
+        _db = db;
     }
 
     [HttpGet]
     // [Authorize]
     public async Task<IActionResult> GetCustomers(
-        [FromQuery] string? name, 
+        [FromQuery] string? name,
+        [FromQuery] string? phone,
         [FromQuery] string? hasPhone,
         [FromQuery] string? hasEmail,
         [FromQuery] string? hasAddress,
@@ -64,16 +28,22 @@ public class CustomerController : Controller
         [FromQuery] DateTime? createdTo,
         [FromQuery] bool includeInactive = false)
     {
-        var query = _dbContext.Customers.AsQueryable();
+        var query = _db.Customers.AsQueryable();
         
         if (!includeInactive) 
             query = query.Where(c => c.IsActive);
-            
-        if (!string.IsNullOrWhiteSpace(name))
+        
+        // Tìm theo số điện thoại chính xác
+        if (!string.IsNullOrWhiteSpace(phone))
+        {
+            query = query.Where(c => c.Phone == phone);
+        }
+        // Tìm theo tên/địa chỉ/email
+        else if (!string.IsNullOrWhiteSpace(name))
         {
             string pattern = $"%{name}%";
             query = query.Where(c => 
-                EF.Functions.Like(c.Name, pattern) || 
+                EF.Functions.Like(c.CustomerName, pattern) || 
                 EF.Functions.Like(c.Address, pattern) || 
                 EF.Functions.Like(c.Email, pattern) || 
                 EF.Functions.Like(c.Phone, pattern)
@@ -119,12 +89,40 @@ public class CustomerController : Controller
         return Ok(list);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     // [Authorize]
     public async Task<IActionResult> GetCustomerById(int id)
     {
-        var cus = await _dbContext.Customers.FirstOrDefaultAsync(c => c.CustomerId == id);
+        var cus = await _db.Customers.FirstOrDefaultAsync(c => c.CustomerId == id);
         return cus is null ? NotFound() : Ok(cus);
+    }
+
+    [HttpGet("phone/{phone}")]
+    public async Task<IActionResult> SearchCustomer(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            return BadRequest(new { message = "Vui lòng nhập số điện thoại." });
+        }
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Phone == phone);
+
+        if (customer == null)
+            return Ok(new
+            {
+                isGuest = true,
+                customerId = 0,
+                customerName = "Khách vãng lai"
+            });
+
+        return Ok(new
+        {
+            isGuest = false,
+            customer.CustomerId,
+            customer.CustomerName,
+            customer.Phone,
+            customer.Address
+        });
     }
 
     [HttpPost]
@@ -132,32 +130,32 @@ public class CustomerController : Controller
     public async Task<IActionResult> AddCustomer([FromBody] Customer c)
     {
         c.IsActive = true;
-        _dbContext.Customers.Add(c);
-        return await _dbContext.SaveChangesAsync() > 0 ? StatusCode(201) : StatusCode(400);
+        _db.Customers.Add(c);
+        return await _db.SaveChangesAsync() > 0 ? StatusCode(201,c) : StatusCode(400);
     }
 
     [HttpPut("{id}")]
     // [Authorize]
     public async Task<IActionResult> UpdateCustomer([FromBody] Customer c, int id)
     {
-        var cus = await _dbContext.Customers.FirstOrDefaultAsync(x => x.CustomerId == id);
+        var cus = await _db.Customers.FirstOrDefaultAsync(x => x.CustomerId == id);
         if (cus is null) return NotFound();
 
-        cus.Name = c.Name;
+        cus.CustomerName = c.CustomerName;
         cus.Phone = c.Phone;
         cus.Email = c.Email;
         cus.Address = c.Address;
-        _dbContext.Customers.Update(cus);
-        return await _dbContext.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+        _db.Customers.Update(cus);
+        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
     }
 
     [HttpDelete("{id}")]
     // [Authorize]
     public async Task<IActionResult> DeleteCustomer(int id)
     {
-        var cus = await _dbContext.Customers.FindAsync(id);
+        var cus = await _db.Customers.FindAsync(id);
         if (cus is null) return NotFound();
         cus.IsActive = !cus.IsActive;
-        return await _dbContext.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
+        return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
     }
 }

@@ -1,0 +1,53 @@
+@inherits LayoutComponentBase
+@using StoreManagement.Client.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="true" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@(() => drawerOpen = !drawerOpen)" />
+        <MudText Typo="Typo.h6">Thanh toán</MudText>
+        <MudSpacer />
+        @if (currentUser != null)
+        {
+            <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Variant="Variant.Filled">
+                @(string.IsNullOrEmpty(currentUser.FullName) ? currentUser.Username : currentUser.FullName) (@currentUser.Role)
+            </MudChip>
+        }
+        <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="HandleLogout" Title="Đăng xuất" />
+    </MudAppBar>
+    
+    <MudDrawer @bind-Open="drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <MudNavMenu>
+            <MudNavLink Href="/staff" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PointOfSale">Thanh toán</MudNavLink>
+            <MudNavLink Href="/staff/order" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Receipt">Đơn hàng</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="my-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool drawerOpen = true;
+    private StoreManagement.Shared.DTOs.UserInfoDto? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = await AuthService.GetCurrentUserAsync();
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

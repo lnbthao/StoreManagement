@@ -1,0 +1,86 @@
+﻿@using StoreManagement.Shared.DTOs
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Bộ lọc: Khách hàng</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.HasPhone" Label="Có số điện thoại" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("true")">Có</MudSelectItem>
+                    <MudSelectItem Value="@("false")">Không có</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.HasEmail" Label="Có email" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("true")">Có</MudSelectItem>
+                    <MudSelectItem Value="@("false")">Không có</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.HasAddress" Label="Có địa chỉ" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("true")">Có</MudSelectItem>
+                    <MudSelectItem Value="@("false")">Không có</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="createdFrom" Label="Từ ngày" Variant="Variant.Outlined" Clearable="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker @bind-Date="createdTo" Label="Đến ngày" Variant="Variant.Outlined" Clearable="true" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Error" OnClick="Clear">Xóa lọc</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ApplyFilter">Áp dụng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public CustomerFilterDto CurrentFilters { get; set; } = new();
+
+    private CustomerFilterDto filters = new();
+    private DateTime? createdFrom;
+    private DateTime? createdTo;
+
+    protected override void OnInitialized()
+    {
+        filters = new CustomerFilterDto
+        {
+            HasPhone = CurrentFilters.HasPhone ?? "",
+            HasEmail = CurrentFilters.HasEmail ?? "",
+            HasAddress = CurrentFilters.HasAddress ?? "",
+            CreatedFrom = CurrentFilters.CreatedFrom,
+            CreatedTo = CurrentFilters.CreatedTo
+        };
+        
+        createdFrom = CurrentFilters.CreatedFrom;
+        createdTo = CurrentFilters.CreatedTo;
+    }
+
+    private void ApplyFilter()
+    {
+        filters.CreatedFrom = createdFrom;
+        filters.CreatedTo = createdTo;
+        MudDialog.Close(DialogResult.Ok(filters));
+    }
+
+    private void Clear()
+    {
+        filters = new CustomerFilterDto();
+        createdFrom = null;
+        createdTo = null;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

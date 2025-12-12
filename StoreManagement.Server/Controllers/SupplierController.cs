@@ -5,59 +5,41 @@ using StoreManagement.Server.Models;
 namespace StoreManagement.Server.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class SupplierController : ControllerBase
+[Route("/api/[controller]")]
+public class SupplierController : Controller
 {
-    private readonly StoreManagementContext _dbContext;
-    private readonly ILogger<SupplierController> _logger;
+    private readonly StoreManagementContext _context;
 
-    public SupplierController(StoreManagementContext dbContext, ILogger<SupplierController> logger)
+    public SupplierController(StoreManagementContext context)
     {
-        _dbContext = dbContext;
-        _logger = logger;
+        _context = context;
     }
 
-    // GET: api/supplier
+    // GET: /api/supplier?name=abc
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetSuppliers([FromQuery] string? name)
+    public async Task<List<Supplier>> GetSuppliers(string? name)
     {
-        IQueryable<Supplier> query = _dbContext.Suppliers
-            .Where(s => s.IsActive); // Chỉ lấy nhà cung cấp đang hoạt động
+        var query = _context.Suppliers.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(name))
-        {
+        if (!string.IsNullOrEmpty(name))
             query = query.Where(s => EF.Functions.Like(s.SupplierName, $"%{name}%"));
-        }
 
-        var suppliers = await query
-            .Select(s => new
-            {
-                supplierId = s.SupplierId,
-                name = s.SupplierName,
-                phone = s.Phone,
-                email = s.Email,
-                address = s.Address
-                // Chỉ trả những field cần thiết cho frontend
-            })
-            .OrderBy(s => s.name)
-            .ToListAsync();
-
-        return Ok(suppliers);
+        return await query.ToListAsync();
     }
 
-    // GET: api/supplier/5
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<object>> GetSupplierById(int id)
+    // GET: /api/supplier/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetSupplierById(int id)
     {
-        var supplier = await _dbContext.Suppliers
-            .Where(s => s.SupplierId == id && s.IsActive)
-            .Select(s => new
-            {
-                supplierId = s.SupplierId,
-                name = s.SupplierName,
-                phone = s.Phone,
-                email = s.Email,
-                address = s.Address
+        var supplier = await _context.Suppliers
+            .Where(s => s.SupplierId == id)
+            .Select(s => new {
+                s.SupplierId,
+                s.SupplierName,
+                s.Phone,
+                s.Email,
+                s.Address,
+                s.IsActive
             })
             .FirstOrDefaultAsync();
 
@@ -66,47 +48,59 @@ public class SupplierController : ControllerBase
         return Ok(supplier);
     }
 
-    // POST: api/supplier
+    // POST: /api/supplier
     [HttpPost]
-    public async Task<ActionResult> AddSupplier([FromBody] Supplier supplier)
+    public async Task<IActionResult> AddSupplier(Supplier s)
     {
-        if (string.IsNullOrWhiteSpace(supplier.SupplierName))
-            return BadRequest("Tên nhà cung cấp không được để trống.");
+        s.IsActive ??= true; // mặc định true nếu null
 
-        supplier.IsActive = true;
-        _dbContext.Suppliers.Add(supplier);
-        await _dbContext.SaveChangesAsync();
+        _context.Suppliers.Add(s);
+        var result = await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetSupplierById), new { id = supplier.SupplierId }, supplier);
+        return result > 0 ? StatusCode(201) : StatusCode(400);
     }
 
-    // PUT: api/supplier/5
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> UpdateSupplier(int id, [FromBody] Supplier supplier)
+    // PUT: /api/supplier/{id}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSupplier(int id, [FromBody] Supplier s)
     {
-        if (id != supplier.SupplierId) return BadRequest("ID không khớp.");
+        var existing = await _context.Suppliers.FindAsync(id);
+        if (existing == null)
+            return NotFound($"Supplier with ID {id} not found.");
 
-        var existing = await _dbContext.Suppliers.FindAsync(id);
-        if (existing == null || existing.IsActive == false) return NotFound();
+        existing.SupplierName = s.SupplierName;
+        existing.Phone = s.Phone;
+        existing.Email = s.Email;
+        existing.Address = s.Address;
+        existing.IsActive = s.IsActive ?? true;
 
-        existing.SupplierName = supplier.SupplierName;
-        existing.Phone = supplier.Phone;
-        existing.Email = supplier.Email;
-        existing.Address = supplier.Address;
-
-        await _dbContext.SaveChangesAsync();
-        return NoContent();
+        await _context.SaveChangesAsync();
+        return Ok(existing);
     }
 
-    // DELETE: api/supplier/5 (soft delete)
-    [HttpDelete("{id:int}")]
+    // DELETE: /api/supplier/{id} → xóa mềm
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteSupplier(int id)
     {
-        var supplier = await _dbContext.Suppliers.FindAsync(id);
+        var existing = await _context.Suppliers.FindAsync(id);
+        if (existing == null)
+            return NotFound($"Supplier with ID {id} not found.");
+
+        existing.IsActive = false;
+        await _context.SaveChangesAsync();
+        return Ok();
+    }
+
+    // PUT: api/Supplier/{id}/restore → phục hồi
+    [HttpPut("{id:int}/restore")]
+    public async Task<IActionResult> RestoreSupplier(int id)
+    {
+        var supplier = await _context.Suppliers.FindAsync(id);
         if (supplier == null) return NotFound();
 
-        supplier.IsActive = false;
-        await _dbContext.SaveChangesAsync();
-        return NoContent();
+        supplier.IsActive = true;
+        await _context.SaveChangesAsync();
+        return Ok();
     }
 }
+

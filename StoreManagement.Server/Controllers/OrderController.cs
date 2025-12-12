@@ -2,199 +2,217 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
 
-namespace StoreManagement.Server.Controllers;
-
-[ApiController]
-[Route("/api/[controller]")]
-public class OrderController : Controller
+namespace StoreManagement.Server.Controllers
 {
-    private readonly ILogger<OrderController> _logger;
-    private readonly StoreManagementContext _dbContext;
-
-    public OrderController(ILogger<OrderController> logger, StoreManagementContext dbContext)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrderController : ControllerBase
     {
-        _logger = logger;
-        _dbContext = dbContext;
-    }
-  
-    [HttpGet]
-    public async Task<ActionResult> GetOrders()
-    {
-        var orders = await _dbContext.Orders
-            .Include(o => o.Customer)
-            .Include(o => o.User)
-            .Include(o => o.Promo)
-            .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Product)
-            .OrderByDescending(o => o.OrderDate)
-            .Select(o => new
-            {
-                o.OrderId,
-                o.OrderDate,
-                o.Status,
-                o.TotalAmount,
-                o.DiscountAmount,
+        private readonly StoreManagementContext _context;
 
-                // --- STAFF ---
-                User = o.User == null ? null : new
-                {
-                    o.User.UserId,
-                    o.User.FullName
-                },
-
-                // --- CUSTOMER ---
-                Customer = o.Customer == null ? null : new
-                {
-                    o.Customer.CustomerId,
-                    o.Customer.Name
-                },
-
-                // --- PROMOTION ---
-                Promotion = o.Promo == null ? null : new
-                {
-                    o.Promo.PromoId,
-                    o.Promo.PromoCode
-                },
-
-                // --- ITEMS ---
-                OrderItems = o.OrderItems.Select(oi => new
-                {
-                    oi.ProductId,
-                    oi.Quantity,
-                    oi.Price,
-                    SubTotal = oi.Price * oi.Quantity,
-
-                    Product = oi.Product == null ? null : new
-                    {
-                        oi.Product.ProductId,
-                        oi.Product.ProductName,
-                        oi.Product.Unit
-                    }
-                })
-            })
-            .ToListAsync();
-
-        return Ok(orders);
-    }
-
-    // GET: api/Order/5
-    [HttpGet("{id}")]
-    public async Task<ActionResult<OrderDto>> GetOrder(int id)
-    {
-        var order = await _dbContext.Orders
-            .Where(o => o.OrderId == id)
-            .Select(o => new OrderDto
-            {
-                OrderId = o.OrderId,
-                OrderDate = o.OrderDate,
-                Status = o.Status ?? string.Empty,
-                TotalAmount = o.TotalAmount ?? 0,
-                DiscountAmount = o.DiscountAmount ?? 0,
-                Customer = o.Customer == null
-                    ? null
-                    : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.Name },
-                User = o.User == null
-                    ? null
-                    : new IdNameDto { Id = o.User.UserId, Name = o.User.FullName },
-                Promo = o.Promo == null
-                    ? null
-                    : new IdNameDto { Id = o.Promo.PromoId, Name = o.Promo.PromoCode },
-                Items = o.OrderItems.Select(oi => new OrderItemDto
-                {
-                    OrderItemId = oi.OrderItemId,
-                    ProductId = oi.ProductId ?? 0,
-                    ProductName = oi.Product != null ? oi.Product.ProductName : null,
-                    Quantity = oi.Quantity,
-                    Price = oi.Price,
-                    Subtotal = oi.Subtotal
-                }).ToList()
-            })
-            .FirstOrDefaultAsync();
-
-        if (order == null)
+        public OrderController(StoreManagementContext context)
         {
-            return NotFound();
+            _context = context;
         }
 
-        return order;
-    }
-
-    // POST: api/Order
-    [HttpPost]
-    public async Task<ActionResult<object>> CreateOrder(Order order)
-    {
-        try
+        // GET: api/Order
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()
         {
-            // Validate input
+            var result = await _context.Orders
+                .OrderByDescending(o => o.OrderId)
+                .Select(o => new OrderDto
+                {
+                    OrderId = o.OrderId,
+                    OrderDate = o.OrderDate,
+                    Status = o.Status ?? string.Empty,
+                    TotalAmount = o.TotalAmount ?? 0,
+                    DiscountAmount = o.DiscountAmount ?? 0,
+                    Customer = o.Customer == null
+                        ? null
+                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.CustomerName },
+                    User = o.User == null
+                        ? null
+                        : new IdNameDto { Id = o.User.UserId, Name = o.User.FullName },
+                    Promo = o.Promo == null
+                        ? null
+                        : new IdNameDto { Id = o.Promo.PromoId, Name = o.Promo.PromoCode },
+                    Items = o.OrderItems.Select(oi => new OrderItemDto
+                    {
+                        OrderItemId = oi.OrderItemId,
+                        ProductId = oi.ProductId ?? 0,
+                        ProductName = oi.Product != null ? oi.Product.ProductName : null,
+                        Quantity = oi.Quantity,
+                        Price = oi.Price,
+                        Subtotal = oi.Subtotal
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(result);
+        }
+
+        // GET: api/Order/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<OrderDto>> GetOrder(int id)
+        {
+            var order = await _context.Orders
+                .Where(o => o.OrderId == id)
+                .Select(o => new OrderDto
+                {
+                    OrderId = o.OrderId,
+                    OrderDate = o.OrderDate,
+                    Status = o.Status ?? string.Empty,
+                    TotalAmount = o.TotalAmount ?? 0,
+                    DiscountAmount = o.DiscountAmount ?? 0,
+                    Customer = o.Customer == null
+                        ? null
+                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.CustomerName },
+                    User = o.User == null
+                        ? null
+                        : new IdNameDto { Id = o.User.UserId, Name = o.User.FullName },
+                    Promo = o.Promo == null
+                        ? null
+                        : new IdNameDto { Id = o.Promo.PromoId, Name = o.Promo.PromoCode },
+                    Items = o.OrderItems.Select(oi => new OrderItemDto
+                    {
+                        OrderItemId = oi.OrderItemId,
+                        ProductId = oi.ProductId ?? 0,
+                        ProductName = oi.Product != null ? oi.Product.ProductName : null,
+                        Quantity = oi.Quantity,
+                        Price = oi.Price,
+                        Subtotal = oi.Subtotal
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
+
             if (order == null)
             {
-                return BadRequest(new { message = "Dữ liệu đơn hàng không hợp lệ!" });
+                return NotFound();
             }
 
-            if (order.OrderItems == null || !order.OrderItems.Any())
-            {
-                return BadRequest(new { message = "Đơn hàng phải có ít nhất một sản phẩm!" });
-            }
+            return order;
+        }
 
-            // Set default values
-            order.OrderDate = DateTime.Now;
-            order.Status = order.Status ?? "pending";
-
-            // Validate customer exists
-            var customerExists = await _dbContext.Customers.AnyAsync(c => c.CustomerId == order.CustomerId);
-            if (!customerExists)
+        // POST: api/Order
+        [HttpPost]
+        public async Task<ActionResult<object>> CreateOrder(Order order)
+        {
+            try
             {
-                return BadRequest(new { message = "Khách hàng không tồn tại!" });
-            }
-
-            // Validate products and calculate totals
-            decimal totalAmount = 0;
-            foreach (var item in order.OrderItems)
-            {
-                var product = await _dbContext.Products.FindAsync(item.ProductId);
-                if (product == null)
+                // Validate input
+                if (order == null)
                 {
-                    return BadRequest(new { message = $"Sản phẩm ID {item.ProductId} không tồn tại!" });
+                    return BadRequest(new { message = "Dữ liệu đơn hàng không hợp lệ!" });
                 }
 
-                // Get inventory for this product
-                var inventory = await _dbContext.Inventories
-                    .FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
-
-                if (inventory == null)
+                if (order.OrderItems == null || !order.OrderItems.Any())
                 {
-                    return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' chưa có thông tin tồn kho!" });
+                    return BadRequest(new { message = "Đơn hàng phải có ít nhất một sản phẩm!" });
                 }
 
-                // Check stock
-                var currentStock = inventory.Quantity;
-                if (currentStock < item.Quantity)
+                // Set default values
+                order.OrderDate = DateTime.Now;
+                order.Status = order.Status ?? "pending";
+
+                // Validate customer exists
+                var customerExists = await _context.Customers.AnyAsync(c => c.CustomerId == order.CustomerId);
+                if (!customerExists) order.CustomerId = null;
+                
+                // Validate user exists - UserId is required
+                if (order.UserId == null)
                 {
-                    return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' không đủ hàng trong kho! Tồn kho: {currentStock}" });
+                    return BadRequest(new { message = "Thiếu thông tin nhân viên tạo đơn!" });
+                }
+                
+                var userExists = await _context.Users.AnyAsync(u => u.UserId == order.UserId);
+                if (!userExists)
+                {
+                    return BadRequest(new { message = "Nhân viên không tồn tại!" });
                 }
 
-                // Calculate subtotal
-                item.Price = product.Price;
-                item.Subtotal = item.Price * item.Quantity;
-                totalAmount += item.Subtotal;
-
-                // Update inventory
-                inventory.Quantity = currentStock - item.Quantity;
-                inventory.UpdatedAt = DateTime.Now;
-            }
-
-            // Apply promotion discount if exists
-            decimal discountAmount = 0;
-            if (order.PromoId != null)
-            {
-                var promo = await _dbContext.Promotions.FindAsync(order.PromoId);
-                if (promo != null)
+                // Validate products and calculate totals
+                decimal totalAmount = 0;
+                foreach (var item in order.OrderItems)
                 {
-                    // Check if promotion is valid
-                    var now = DateTime.Now;
-                    if (promo.StartDate <= now && promo.EndDate >= now)
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product == null)
                     {
-                        if (promo.DiscountType == "percentage")
+                        return BadRequest(new { message = $"Sản phẩm ID {item.ProductId} không tồn tại!" });
+                    }
+
+                    // Get inventory for this product
+                    var inventory = await _context.Inventories
+                        .FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
+                    
+                    if (inventory == null)
+                    {
+                        return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' chưa có thông tin tồn kho!" });
+                    }
+
+                    // Check stock
+                    var currentStock = inventory.Quantity;
+                    if (currentStock < item.Quantity)
+                    {
+                        return BadRequest(new { message = $"Sản phẩm '{product.ProductName}' không đủ hàng trong kho! Tồn kho: {currentStock}" });
+                    }
+
+                    // Calculate subtotal
+                    item.Price = product.Price;
+                    item.Subtotal = item.Price * item.Quantity;
+                    totalAmount += item.Subtotal;
+                    
+                    // Clear các field để EF tự generate
+                    item.OrderItemId = 0;
+                    item.Order = null;
+                    item.OrderId = null;
+                    item.Product = null;
+
+                    // Update inventory
+                    inventory.Quantity = currentStock - item.Quantity;
+                    inventory.UpdatedAt = DateTime.Now;
+                }
+
+                // Apply promotion discount if exists
+                decimal discountAmount = 0;
+                if (order.PromoId != null)
+                {
+                    var promo = await _context.Promotions.FindAsync(order.PromoId);
+                    if (promo != null)
+                    {
+                        // Check if promotion is valid
+                        var now = DateTime.Now;
+                        var isActive = promo.Status?.ToLower() == "active";
+                        var isInDateRange = promo.StartDate <= now && promo.EndDate >= now;
+                        
+                        // Check usage limit
+                        var usedCount = promo.UsedCount ?? 0;
+                        var usageLimit = promo.UsageLimit ?? 0;
+                        var hasUsageLeft = usageLimit == 0 || usedCount < usageLimit;
+                        
+                        if (!isActive)
+                        {
+                            return BadRequest(new { message = "Mã khuyến mãi hiện đang bị vô hiệu hóa." });
+                        }
+                        
+                        if (!isInDateRange)
+                        {
+                            return BadRequest(new { message = "Mã khuyến mãi không trong thời gian áp dụng." });
+                        }
+                        
+                        if (!hasUsageLeft)
+                        {
+                            return BadRequest(new { message = "Mã khuyến mãi đã hết lượt sử dụng." });
+                        }
+                        
+                        // Check minimum order amount
+                        if (promo.MinOrderAmount != null && totalAmount < promo.MinOrderAmount)
+                        {
+                            return BadRequest(new { message = $"Đơn hàng chưa đạt giá trị tối thiểu ({promo.MinOrderAmount:N0}đ) để sử dụng mã này." });
+                        }
+                        
+                        // Calculate discount - FIX: check for "percent" not "percentage"
+                        if (promo.DiscountType?.ToLower() == "percent")
                         {
                             discountAmount = totalAmount * promo.DiscountValue / 100;
                         }
@@ -202,173 +220,186 @@ public class OrderController : Controller
                         {
                             discountAmount = promo.DiscountValue;
                         }
-
+                        
                         // Đảm bảo giảm giá không lớn hơn tổng tiền
                         if (discountAmount > totalAmount)
                         {
                             discountAmount = totalAmount;
                         }
+                        
+                        // Tăng UsedCount
+                        promo.UsedCount = usedCount + 1;
                     }
                 }
-            }
 
-            // Tính tổng tiền cuối cùng và đảm bảo không âm
-            var finalTotal = totalAmount - discountAmount;
-            if (finalTotal < 0)
-            {
-                return BadRequest(new { message = "Tổng tiền không được âm!" });
-            }
-
-            order.TotalAmount = finalTotal;
-            order.DiscountAmount = discountAmount;
-
-            // Add order to database
-            _dbContext.Orders.Add(order);
-            await _dbContext.SaveChangesAsync();
-
-            // Trả về gọn để tránh tuần hoàn JSON
-            return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, new { orderId = order.OrderId });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Lỗi khi tạo đơn hàng!", error = ex.Message });
-        }
-    }
-
-    // PUT: api/Order/5/status
-    [HttpPut("{id}/status")]
-    public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] OrderStatusUpdate statusUpdate)
-    {
-        var order = await _dbContext.Orders
-            .Include(o => o.OrderItems)
-            .FirstOrDefaultAsync(o => o.OrderId == id);
-
-        if (order == null)
-        {
-            return NotFound();
-        }
-
-        var oldStatus = order.Status;
-        var newStatus = statusUpdate.Status;
-
-        // Nếu đơn hàng bị hủy, hoàn trả hàng vào kho
-        if (newStatus?.ToLower() == "canceled" || newStatus?.ToLower() == "cancelled")
-        {
-            // Lấy tất cả các order items
-            foreach (var item in order.OrderItems)
-            {
-                if (item.ProductId.HasValue && item.Quantity > 0)
+                // Tính tổng tiền cuối cùng và đảm bảo không âm
+                var finalTotal = totalAmount - discountAmount;
+                if (finalTotal < 0)
                 {
-                    // Tìm inventory record của product này
-                    var inventory = await _dbContext.Inventories
-                        .FirstOrDefaultAsync(i => i.ProductId == item.ProductId.Value);
-
-                    if (inventory != null)
-                    {
-                        // Hoàn trả số lượng vào kho
-                        inventory.Quantity = inventory.Quantity + item.Quantity;
-                    }
+                    return BadRequest(new { message = "Tổng tiền không được âm!" });
                 }
+
+                order.TotalAmount = finalTotal;
+                order.DiscountAmount = discountAmount;
+
+                // Add order to database
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                // Trả về gọn để tránh tuần hoàn JSON
+                return CreatedAtAction(nameof(GetOrder), new { id = order.OrderId }, new { orderId = order.OrderId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tạo đơn hàng!", error = ex.Message });
             }
         }
 
-        order.Status = newStatus;
+        // PUT: api/Order/5/status
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] OrderStatusUpdate statusUpdate)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
 
-        try
-        {
-            await _dbContext.SaveChangesAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            if (!OrderExists(id))
+            if (order == null)
             {
                 return NotFound();
             }
-            else
+
+            var oldStatus = order.Status;
+            var newStatus = statusUpdate.Status;
+            
+            // Nếu đơn hàng bị hủy, hoàn trả hàng vào kho và giảm lượt sử dụng promotion
+            if (newStatus?.ToLower() == "canceled" || newStatus?.ToLower() == "cancelled")
             {
-                throw;
+                // Lấy tất cả các order items
+                foreach (var item in order.OrderItems)
+                {
+                    if (item.ProductId.HasValue && item.Quantity > 0)
+                    {
+                        // Tìm inventory record của product này
+                        var inventory = await _context.Inventories
+                            .FirstOrDefaultAsync(i => i.ProductId == item.ProductId.Value);
+                        
+                        if (inventory != null)
+                        {
+                            // Hoàn trả số lượng vào kho
+                            inventory.Quantity = inventory.Quantity + item.Quantity;
+                            inventory.UpdatedAt = DateTime.Now;
+                        }
+                    }
+                }
+                
+                // Nếu đơn hàng có sử dụng mã giảm giá, giảm UsedCount
+                if (order.PromoId != null)
+                {
+                    var promo = await _context.Promotions.FindAsync(order.PromoId);
+                    if (promo != null && promo.UsedCount > 0)
+                    {
+                        promo.UsedCount = promo.UsedCount - 1;
+                    }
+                }
             }
-        }
 
-        return NoContent();
-    }
+            order.Status = newStatus;
 
-    // DELETE: api/Order/5
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteOrder(int id)
-    {
-        var order = await _dbContext.Orders
-            .Include(o => o.OrderItems)
-            .FirstOrDefaultAsync(o => o.OrderId == id);
-
-        if (order == null)
-        {
-            return NotFound();
-        }
-
-        // Only allow deletion of pending orders
-        if (order.Status?.ToLower() != "pending")
-        {
-            return BadRequest(new { message = "Chỉ có thể xóa đơn hàng đang chờ xác nhận!" });
-        }
-
-        // Restore inventory
-        foreach (var item in order.OrderItems)
-        {
-            var inventory = await _dbContext.Inventories
-                .FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
-
-            if (inventory != null)
+            try
             {
-                inventory.Quantity = inventory.Quantity + item.Quantity;
-                inventory.UpdatedAt = DateTime.Now;
+                await _context.SaveChangesAsync();
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!OrderExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
 
-        _dbContext.Orders.Remove(order);
-        await _dbContext.SaveChangesAsync();
+        // DELETE: api/Order/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteOrder(int id)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderId == id);
 
-        return NoContent();
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            // Only allow deletion of pending orders
+            if (order.Status?.ToLower() != "pending")
+            {
+                return BadRequest(new { message = "Chỉ có thể xóa đơn hàng đang chờ xác nhận!" });
+            }
+
+            // Restore inventory
+            foreach (var item in order.OrderItems)
+            {
+                var inventory = await _context.Inventories
+                    .FirstOrDefaultAsync(i => i.ProductId == item.ProductId);
+                    
+                if (inventory != null)
+                {
+                    inventory.Quantity = inventory.Quantity + item.Quantity;
+                    inventory.UpdatedAt = DateTime.Now;
+                }
+            }
+
+            _context.Orders.Remove(order);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool OrderExists(int id)
+        {
+            return _context.Orders.Any(e => e.OrderId == id);
+        }
     }
 
-    private bool OrderExists(int id)
+    // DTOs
+    public class OrderStatusUpdate
     {
-        return _dbContext.Orders.Any(e => e.OrderId == id);
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class OrderDto
+    {
+        public int OrderId { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public IdNameDto? Customer { get; set; }
+        public IdNameDto? User { get; set; }
+        public IdNameDto? Promo { get; set; }
+        public List<OrderItemDto> Items { get; set; } = new();
+    }
+
+    public class OrderItemDto
+    {
+        public int OrderItemId { get; set; }
+        public int ProductId { get; set; }
+        public string? ProductName { get; set; }
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+        public decimal Subtotal { get; set; }
+    }
+
+    public class IdNameDto
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
     }
 }
-
-// DTOs
-public class OrderStatusUpdate
-{
-    public string Status { get; set; } = string.Empty;
-}
-
-public class OrderDto
-{
-    public int OrderId { get; set; }
-    public DateTime OrderDate { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public decimal TotalAmount { get; set; }
-    public decimal DiscountAmount { get; set; }
-    public IdNameDto? Customer { get; set; }
-    public IdNameDto? User { get; set; }
-    public IdNameDto? Promo { get; set; }
-    public List<OrderItemDto> Items { get; set; } = new();
-}
-
-public class OrderItemDto
-{
-    public int OrderItemId { get; set; }
-    public int ProductId { get; set; }
-    public string? ProductName { get; set; }
-    public int Quantity { get; set; }
-    public decimal Price { get; set; }
-    public decimal Subtotal { get; set; }
-}
-
-public class IdNameDto
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-}
-
