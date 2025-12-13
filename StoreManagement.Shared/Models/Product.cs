@@ -1,0 +1,23 @@
+namespace StoreManagement.Shared.Models;
+
+/// <summary>
+/// Product model matching the backend entity
+/// </summary>
+public class Product
+{
+    public int ProductId { get; set; }
+    public int? CategoryId { get; set; }
+    public int? SupplierId { get; set; }
+    public string ProductName { get; set; } = null!;
+    public string? ImageUrl { get; set; }
+    public string? Barcode { get; set; }
+    public decimal Price { get; set; }
+    public string? Unit { get; set; }
+    public DateTime? CreatedAt { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    // Navigation properties
+    public string? CategoryName { get; set; }
+    public string? SupplierName { get; set; }
+    public int? StockQuantity { get; set; }
+}

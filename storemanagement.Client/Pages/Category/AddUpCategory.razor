@@ -1,0 +1,122 @@
+﻿@page "/admin/category/add"
+@page "/admin/category/edit/{id:int}"
+@using StoreManagement.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>@(IsEdit ? "Sửa" : "Thêm") loại sản phẩm | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+        @(IsEdit ? "SỬA LOẠI SẢN PHẨM" : "THÊM LOẠI SẢN PHẨM")
+    </MudText>
+
+    <MudPaper Elevation="2" Class="pa-6">
+        <MudForm @ref="form" @bind-IsValid="@isFormValid">
+            <MudTextField @bind-Value="category.CategoryName"
+                         Label="Tên loại sản phẩm"
+                         Variant="Variant.Outlined"
+                         Required="true"
+                         RequiredError="Vui lòng nhập tên loại"
+                         Class="mb-4" />
+
+            <MudSwitch @bind-Value="category.IsActive" Color="Color.Success">
+                Hoạt động
+            </MudSwitch>
+
+            <MudStack Row="true" Spacing="3" Class="mt-6">
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Success"
+                          OnClick="HandleSubmit"
+                          Disabled="!isFormValid || isSubmitting">
+                    @if (isSubmitting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    }
+                    <span>@(IsEdit ? "Cập nhật" : "Thêm mới")</span>
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                          Color="Color.Default"
+                          OnClick="@(() => Navigation.NavigateTo("/admin/category"))">
+                    Hủy
+                </MudButton>
+            </MudStack>
+        </MudForm>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private MudForm? form;
+    private Category category = new() { IsActive = true };
+    private bool isFormValid;
+    private bool isSubmitting;
+
+    private bool IsEdit => Id.HasValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEdit && Id.HasValue)
+        {
+            await LoadCategory();
+        }
+    }
+
+    private async Task LoadCategory()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"/api/category/{Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                category = await response.Content.ReadFromJsonAsync<Category>() ?? new();
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Không thể tải thông tin loại sản phẩm", Severity.Error);
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (form == null) return;
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        isSubmitting = true;
+        try
+        {
+            HttpResponseMessage response;
+            if (IsEdit)
+            {
+                response = await Http.PutAsJsonAsync($"/api/category/{Id}", category);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("/api/category", category);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"{(IsEdit ? "Cập nhật" : "Thêm")} thành công!", Severity.Success);
+                Navigation.NavigateTo("/admin/category");
+            }
+            else
+            {
+                Snackbar.Add("Thao tác thất bại!", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Đã xảy ra lỗi!", Severity.Error);
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+}

@@ -1,0 +1,53 @@
+@using StoreManagement.Shared.DTOs
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Bộ lọc: Nhà cung cấp</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("active")">Đang hoạt động</MudSelectItem>
+                    <MudSelectItem Value="@("inactive")">Ngưng hoạt động</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Error" OnClick="Clear">Xóa lọc</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ApplyFilter">Áp dụng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public SupplierFilterDto CurrentFilters { get; set; } = new();
+
+    private SupplierFilterDto filters = new();
+
+    protected override void OnInitialized()
+    {
+        filters = new SupplierFilterDto
+        {
+            Status = CurrentFilters.Status ?? ""
+        };
+    }
+
+    private void ApplyFilter()
+    {
+        MudDialog.Close(DialogResult.Ok(filters));
+    }
+
+    private void Clear()
+    {
+        filters = new SupplierFilterDto();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

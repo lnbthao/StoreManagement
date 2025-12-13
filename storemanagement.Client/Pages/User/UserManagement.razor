@@ -1,0 +1,184 @@
+﻿@page "/admin/user"
+@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.Enums
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Người dùng | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">QUẢN LÝ NGƯỜI DÙNG</MudText>
+    
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => Navigation.NavigateTo("/admin/user/add"))" FullWidth="true">
+                Thêm người dùng
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudButton Variant="Variant.Outlined" 
+                       Color="Color.Primary" 
+                       StartIcon="@Icons.Material.Filled.FilterList"
+                       OnClick="OpenFilterDialog"
+                       FullWidth="true">
+                Lọc
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="7">
+            <MudTextField @bind-Value="searchText" Placeholder="Tìm tên, email..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" DebounceInterval="300" Clearable="true" FullWidth="true" />
+        </MudItem>
+    </MudGrid>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <MudText Align="Align.Center" Class="my-5">Đang tải danh sách người dùng...</MudText>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="my-4"><strong>Lỗi:</strong> @errorMessage</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudTable Items="@filteredUsers" Hover="true" Striped="true" Dense="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Tên đăng nhập</MudTh>
+                    <MudTh>Họ tên</MudTh>
+                    <MudTh Style="text-align:center">Vai trò</MudTh>
+                    <MudTh Style="text-align:center">Trạng thái</MudTh>
+                    <MudTh Style="text-align:center">Hành động</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.Username</MudTd>
+                    <MudTd>@context.FullName</MudTd>
+                    <MudTd Style="text-align:center">
+                        @if (context.Role == "admin")
+                        {
+                            <MudChip T="string" T="string" Color="Color.Error" Size="Size.Small">Admin</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" T="string" Color="Color.Info" Size="Size.Small">Nhân viên</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:center">
+                        @if (context.IsActive)
+                        {
+                            <MudChip T="string" T="string" Color="Color.Success" Size="Size.Small">Hoạt động</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" T="string" Color="Color.Default" Size="Size.Small">Ngừng</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd Style="text-align:center">
+                        <MudTooltip Text="Xem">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small"
+                                         OnClick="@(() => OpenViewDialog(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Sửa">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
+                                         OnClick="@(() => Navigation.NavigateTo($"/admin/user/edit/{context.UserId}"))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Xóa">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                         OnClick="@(() => DeleteUser(context))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+        <MudText Typo="Typo.body2" Class="mt-2">Tổng: <strong>@filteredUsers.Count()</strong> người dùng</MudText>
+    }
+</MudContainer>
+
+@code {
+    private List<User> users = new();
+    private string searchText = "";
+    private bool isLoading = true;
+    private string errorMessage = "";
+
+    private IEnumerable<User> filteredUsers
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchText)) return users;
+            var search = searchText.ToLower().Trim();
+            return users.Where(u =>
+                (u.Username?.ToLower().Contains(search) ?? false) ||
+                (u.FullName?.ToLower().Contains(search) ?? false)
+            );
+        }
+    }
+
+    protected override async Task OnInitializedAsync() => await LoadUsers();
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            var response = await Http.GetFromJsonAsync<List<User>>("api/user");
+            users = response ?? new List<User>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Không thể tải danh sách người dùng: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task OpenViewDialog(User user)
+    {
+        var parameters = new DialogParameters<UserViewDialog>
+        {
+            { x => x.User, user }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<UserViewDialog>("Chi tiết người dùng", parameters, options);
+    }
+
+    private async Task OpenFilterDialog()
+    {
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UserFilterDialog>("Lọc người dùng", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
+            // TODO: Apply filter logic
+        }
+    }
+
+    private async Task DeleteUser(User user)
+    {
+        var result = await DialogService.ShowMessageBox("Xác nhận xóa",
+            $"Bạn có chắc muốn xóa người dùng '{user.Username}'?",
+            yesText: "Xóa", cancelText: "Hủy");
+
+        if (result == true)
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/user/{user.UserId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add($"Đã xóa người dùng '{user.Username}'", Severity.Success);
+                    await LoadUsers();
+                }
+                else { Snackbar.Add("Không thể xóa người dùng", Severity.Error); }
+            }
+            catch (Exception ex) { Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error); }
+        }
+    }
+}
