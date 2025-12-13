@@ -53,6 +53,7 @@ namespace StoreManagement.Server.Controllers
         }
 
         // GET: api/Product/5
+        // GET: api/Product/5
         [HttpGet("{id:int}")]
         public async Task<ActionResult<object>> GetProduct(int id)
         {
@@ -69,10 +70,11 @@ namespace StoreManagement.Server.Controllers
                     p.Price,
                     p.Unit,
                     p.IsActive,
-                    p.CategoryId,
-                    CategoryName = p.Category == null ? null : p.Category.CategoryName,
-                    SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
-                    p.ImageUrl,
+                    p.CategoryId,                          // ← Cần để bind dropdown Danh mục
+                    CategoryName = p.Category != null ? p.Category.CategoryName : null,
+                    p.SupplierId,                          // ← ***BẮT BUỘC THÊM DÒNG NÀY***
+                    SupplierName = p.Supplier != null ? p.Supplier.SupplierName : null,
+                    p.ImageUrl,                            // ← Cần để hiển thị và cập nhật ảnh
                     StockQuantity = p.Inventories.Sum(i => i.Quantity)
                 })
                 .FirstOrDefaultAsync();
@@ -124,19 +126,20 @@ namespace StoreManagement.Server.Controllers
 
         // PUT: api/Product/5
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product product)
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto dto)
         {
-            if (id != product.ProductId) return BadRequest();
+            if (id != dto.ProductId) return BadRequest("ID không khớp");
 
             var existing = await _context.Products.FindAsync(id);
             if (existing == null || !existing.IsActive) return NotFound();
 
-            existing.ProductName = product.ProductName;
-            existing.Barcode = product.Barcode;
-            existing.Price = product.Price;
-            existing.Unit = product.Unit;
-            existing.CategoryId = product.CategoryId;
-            existing.SupplierId = product.SupplierId;
+            existing.ProductName = dto.ProductName;
+            existing.Barcode = dto.Barcode;
+            existing.Price = dto.Price;
+            existing.Unit = dto.Unit;
+            existing.CategoryId = dto.CategoryId;
+            existing.SupplierId = dto.SupplierId;
+            existing.ImageUrl = dto.ImageUrl;  // ← Cập nhật ảnh
 
             await _context.SaveChangesAsync();
             return NoContent();
@@ -236,7 +239,6 @@ namespace StoreManagement.Server.Controllers
 
         private bool ProductExists(int id) => _context.Products.Any(e => e.ProductId == id);
 
-        // DTO – SỬA IsActive thành bool (không nullable)
         public class ProductDto
         {
             public int ProductId { get; set; }
@@ -247,9 +249,22 @@ namespace StoreManagement.Server.Controllers
             public bool IsActive { get; set; } = true;
             public int? CategoryId { get; set; }
             public string? CategoryName { get; set; }
-            public int? SupplierId { get; set; }
+            public int? SupplierId { get; set; }      // ← Phải có
             public string? SupplierName { get; set; }
+            public string? ImageUrl { get; set; }     // ← Phải có để lưu và hiển thị ảnh
             public int Stock { get; set; }
+        }
+
+        public class UpdateProductDto
+        {
+            public int ProductId { get; set; }
+            public string ProductName { get; set; } = string.Empty;
+            public string? Barcode { get; set; }
+            public decimal Price { get; set; }
+            public string? Unit { get; set; }
+            public int? CategoryId { get; set; }
+            public int? SupplierId { get; set; }
+            public string? ImageUrl { get; set; }  // ← Cho phép cập nhật ảnh
         }
     }
 }

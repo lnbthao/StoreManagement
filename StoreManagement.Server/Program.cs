@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Lấy chuỗi kết nối
 var connectionStr = builder.Configuration.GetConnectionString("StorageManagement")!;
+builder.Services.AddScoped(sp =>
+    new HttpClient { BaseAddress = new Uri("https://localhost:5001/") });
 
 //add momo
 builder.Services.Configure<MomoOptionModel>(builder.Configuration.GetSection("MomoAPI"));
@@ -84,8 +86,9 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseStaticFiles();   
+
 app.MapControllers();
 
-app.UseStaticFiles();
 
 app.Run();

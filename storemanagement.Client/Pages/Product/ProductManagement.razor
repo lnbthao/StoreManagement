@@ -286,22 +286,35 @@
     }
     
     private async Task OpenFilterDialog()
+{
+    var parameters = new DialogParameters<ProductFilterDialog>
     {
-        var parameters = new DialogParameters<ProductFilterDialog>
-        {
-            { x => x.CurrentFilters, filters },
-            { x => x.Categories, categories },
-            { x => x.HasInactive, hasInactive }
-        };
-        
-        var dialog = await DialogService.ShowAsync<ProductFilterDialog>("Lọc sản phẩm", parameters);
-        var result = await dialog.Result;
-        
-        if (!result.Canceled && result.Data is ProductFilterDto newFilters)
-        {
-            filters = newFilters;
-        }
+        { x => x.CurrentFilters, filters },
+        { x => x.Categories, categories },
+        { x => x.HasInactive, hasInactive }
+    };
+
+    var options = new DialogOptions
+    {
+        MaxWidth = MaxWidth.ExtraLarge,
+        FullWidth = true,               
+        CloseButton = true
+    };
+
+    var dialog = await DialogService.ShowAsync<ProductFilterDialog>(
+        "Lọc sản phẩm",
+        parameters,
+        options
+    );
+
+    var result = await dialog.Result;
+
+    if (!result.Canceled && result.Data is ProductFilterDto newFilters)
+    {
+        filters = newFilters;
     }
+}
+
     
     private async Task OpenInventoryDialog(Product product)
     {
