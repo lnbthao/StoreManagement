@@ -7,6 +7,7 @@ namespace StoreManagement.Server.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
+[Authorize]
 public class CustomerController : Controller
 {
     private readonly StoreManagementContext _db;
@@ -17,7 +18,6 @@ public class CustomerController : Controller
     }
 
     [HttpGet]
-    // [Authorize]
     public async Task<IActionResult> GetCustomers(
         [FromQuery] string? name,
         [FromQuery] string? phone,
@@ -90,7 +90,6 @@ public class CustomerController : Controller
     }
 
     [HttpGet("{id:int}")]
-    // [Authorize]
     public async Task<IActionResult> GetCustomerById(int id)
     {
         var cus = await _db.Customers.FirstOrDefaultAsync(c => c.CustomerId == id);
@@ -131,7 +130,6 @@ public class CustomerController : Controller
     }
 
     [HttpPost]
-    // [Authorize]
     public async Task<IActionResult> AddCustomer([FromBody] Customer c)
     {
         if (string.IsNullOrWhiteSpace(c.CustomerName))
@@ -167,7 +165,6 @@ public class CustomerController : Controller
     }
 
     [HttpPut("{id}")]
-    // [Authorize]
     public async Task<IActionResult> UpdateCustomer([FromBody] Customer c, int id)
     {
         var cus = await _db.Customers.FirstOrDefaultAsync(x => x.CustomerId == id);
@@ -209,7 +206,7 @@ public class CustomerController : Controller
     }
 
     [HttpDelete("{id}")]
-    // [Authorize]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteCustomer(int id)
     {
         var cus = await _db.Customers.FindAsync(id);

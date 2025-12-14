@@ -9,12 +9,14 @@ public class AuthService : IAuthService
 {
     private readonly HttpClient _httpClient;
     private readonly IJSRuntime _jsRuntime;
+    private readonly JwtAuthenticationStateProvider _authStateProvider;
     private UserInfoDto? _currentUser;
 
-    public AuthService(HttpClient httpClient, IJSRuntime jsRuntime)
+    public AuthService(HttpClient httpClient, IJSRuntime jsRuntime, JwtAuthenticationStateProvider authStateProvider)
     {
         _httpClient = httpClient;
         _jsRuntime = jsRuntime;
+        _authStateProvider = authStateProvider;
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest)
@@ -39,6 +41,9 @@ public class AuthService : IAuthService
                     _httpClient.DefaultRequestHeaders.Authorization = 
                         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", result.Token);
 
+                    // Notify auth state changed
+                    _authStateProvider.NotifyAuthenticationStateChanged();
+
                     return result;
                 }
                 
@@ -61,6 +66,9 @@ public class AuthService : IAuthService
         await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "userInfo");
         _currentUser = null;
         _httpClient.DefaultRequestHeaders.Authorization = null;
+        
+        // Notify auth state changed
+        _authStateProvider.NotifyAuthenticationStateChanged();
     }
 
     public async Task<UserInfoDto?> GetCurrentUserAsync()
@@ -113,3 +121,4 @@ public class AuthService : IAuthService
         }
     }
 }
+

@@ -1,5 +1,6 @@
 ﻿@page "/admin"
 @page "/admin/dashboard"
+@attribute [Authorize(Roles = "admin")]
 @using StoreManagement.Shared.ViewModels
 @inject HttpClient Http
 @inject NavigationManager Nav

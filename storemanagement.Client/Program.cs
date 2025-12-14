@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor.Services;
 using StoreManagement.Client;
 using StoreManagement.Client.Services;
@@ -16,6 +17,12 @@ builder.Services.AddScoped(sp => new HttpClient
 
 // Add MudBlazor services
 builder.Services.AddMudServices();
+
+// Add Authorization services
+builder.Services.AddAuthorizationCore();
+builder.Services.AddScoped<JwtAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => 
+    sp.GetRequiredService<JwtAuthenticationStateProvider>());
 
 // Add Authentication Service
 builder.Services.AddScoped<IAuthService, AuthService>();

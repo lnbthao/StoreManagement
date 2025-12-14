@@ -13,6 +13,7 @@ namespace StoreManagement.Server.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "admin")]
 public class UserController : Controller
 {
     private readonly StoreManagementContext _db;
@@ -25,6 +26,7 @@ public class UserController : Controller
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
         /*
@@ -74,7 +76,6 @@ public class UserController : Controller
     }
 
     [HttpGet]
-    // [Authorize]
     public async Task<IActionResult> GetUsers(
         [FromQuery] string? name, 
         [FromQuery] string? role,
@@ -124,7 +125,6 @@ public class UserController : Controller
     }
 
     [HttpGet("{id}")]
-    // [Authorize]
     public async Task<IActionResult> GetUserById(int id)
     {
         var u = await _db.Users.FirstOrDefaultAsync(x => x.UserId == id);
@@ -133,7 +133,6 @@ public class UserController : Controller
     }
 
     [HttpPost]
-    // [Authorize]
     public async Task<IActionResult> CreateUser([FromBody] User u)
     {
         if (string.IsNullOrWhiteSpace(u.FullName))
@@ -155,7 +154,6 @@ public class UserController : Controller
     }
 
     [HttpPut("{id}")]
-    // [Authorize]
     public async Task<IActionResult> UpdateUser([FromBody] User u, int id)
     {
         var user = await _db.Users.FirstOrDefaultAsync(x => x.UserId == id);
@@ -182,7 +180,6 @@ public class UserController : Controller
     }
 
     [HttpDelete("{id}")]
-    // [Authorize]
     public async Task<IActionResult> DeleteUser(int id)
     {
         var user = await _db.Users.FindAsync(id);

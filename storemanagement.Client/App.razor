@@ -1,18 +1,44 @@
-<Router AppAssembly="@typeof(App).Assembly">
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-    <NotFound>
-        <PageTitle>Không tìm thấy</PageTitle>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <MudContainer Class="mt-16 text-center">
-                <MudText Typo="Typo.h3">404 - Không tìm thấy trang</MudText>
-                <MudText Class="mt-4">Xin lỗi, trang bạn tìm kiếm không tồn tại.</MudText>
-                <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" Class="mt-8">
-                    Quay về trang chủ
-                </MudButton>
-            </MudContainer>
-        </LayoutView>
-    </NotFound>
-</Router>
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        <MudContainer Class="mt-16 text-center">
+                            <MudText Typo="Typo.h4" Color="Color.Error">Truy cập bị từ chối</MudText>
+                            <MudText Class="mt-4">Bạn không có quyền truy cập trang này.</MudText>
+                            <MudButton Href="/login" Variant="Variant.Filled" Color="Color.Primary" Class="mt-8">
+                                Đăng nhập lại
+                            </MudButton>
+                        </MudContainer>
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <MudContainer Class="mt-16 text-center">
+                        <MudProgressCircular Indeterminate="true" />
+                        <MudText Class="mt-4">Đang kiểm tra quyền truy cập...</MudText>
+                    </MudContainer>
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Không tìm thấy</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <MudContainer Class="mt-16 text-center">
+                    <MudText Typo="Typo.h3">404 - Không tìm thấy trang</MudText>
+                    <MudText Class="mt-4">Xin lỗi, trang bạn tìm kiếm không tồn tại.</MudText>
+                    <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" Class="mt-8">
+                        Quay về trang chủ
+                    </MudButton>
+                </MudContainer>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
+

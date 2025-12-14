@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using StoreManagement.Server.Models;
 using StoreManagement.Shared.ViewModels;
 using StoreManagement.Shared.DTOs;
@@ -8,6 +9,7 @@ namespace StoreManagement.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class OrderController : ControllerBase
     {
         private readonly StoreManagementContext _context;

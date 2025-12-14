@@ -1,4 +1,5 @@
 ﻿@page "/admin/category"
+@attribute [Authorize(Roles = "admin")]
 @using StoreManagement.Shared.Models
 @inject HttpClient Http
 @inject NavigationManager Navigation

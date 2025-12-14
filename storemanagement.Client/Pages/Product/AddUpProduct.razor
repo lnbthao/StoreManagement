@@ -1,5 +1,6 @@
 ﻿@page "/admin/product/add"
 @page "/admin/product/edit/{id:int}"
+@attribute [Authorize(Roles = "admin")]
 @using StoreManagement.Shared.Models
 @using StoreManagement.Shared.DTOs
 @using Microsoft.AspNetCore.Components.Forms
