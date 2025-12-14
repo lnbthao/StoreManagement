@@ -1,0 +1,394 @@
+﻿@page "/staff"
+@page "/staff/checkout"
+@layout StaffLayout
+@using StoreManagement.Shared.ViewModels
+@using StoreManagement.Shared.Helpers
+@using CategoryModel = StoreManagement.Shared.Models.Category
+@using ProductModel = StoreManagement.Shared.Models.Product
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Thanh toán | Quản lý kho hàng</PageTitle>
+
+<MudGrid>
+    @* Product Grid - Hiển thị danh sách sản phẩm *@
+    <MudItem xs="12" md="8">
+        <MudPaper Elevation="2" Class="pa-4 mb-4">
+            <MudTextField @bind-Value="searchProduct"
+                         Label="Tìm sản phẩm (tên hoặc barcode)"
+                         Variant="Variant.Outlined"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         OnDebounceIntervalElapsed="SearchProducts"
+                         DebounceInterval="300"
+                         Immediate="true"
+                         FullWidth="true" />
+        </MudPaper>
+
+        <MudTabs style="margin-bottom: 16px" Color="Color.Primary" Elevation="2">
+            <MudTabPanel Text="Tất cả" @onclick="() => FilterProducts()" />
+            @foreach (var category in categoryList)
+            {
+                <MudTabPanel Text="@category.CategoryName" @onclick="() => FilterProducts(category.CategoryName)" />
+            }
+        </MudTabs>
+
+        @if (isLoadingProducts)
+        {
+            <MudProgressLinear Indeterminate="true" />
+        }
+        else if (displayProducts.Count == 0)
+        {
+            <MudText Style="text-align:center;">
+                Không có sản phẩm!
+            </MudText>
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (var product in displayProducts)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="cursor-pointer" @onclick="@(() => AddToCart(product))">
+                            @if (string.IsNullOrEmpty(product.ImageUrl))
+                            {
+                                <MudCardMedia Image="https://localhost:7064/images/products/error.png" Height="150" Style="background-size: contain" />
+                            }
+                            else
+                            {
+                                <img
+                                    src="@($"https://localhost:7064{product.ImageUrl}")"
+                                    alt="@product.ProductName"
+                                    style="height: 150px; object-fit: contain"
+                                    onerror="this.src = 'https://localhost:7064/images/products/error.png'"
+                                />
+                            }
+                            <MudCardContent Class="pa-2">
+                                <MudText Typo="Typo.body2" Class="font-weight-bold">@product.ProductName</MudText>
+                                <MudText Typo="Typo.body1" Color="Color.Primary" Class="font-weight-bold">
+                                    @FormatHelper.ToVNPrice(product.Price)
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="@(product.StockQuantity > 0 ? Color.Success : Color.Error)">
+                                    Tồn: @(product.StockQuantity ?? 0) @product.Unit
+                                </MudText>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudButton Variant="Variant.Filled" 
+                                          Color="Color.Primary" 
+                                          Size="Size.Small"
+                                          FullWidth="true"
+                                          Disabled="@(product.StockQuantity <= 0)"
+                                          OnClick="@(() => AddToCart(product))">
+                                    <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Small" /> Thêm
+                                </MudButton>
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudItem>
+
+    @* Cart & Checkout *@
+    <MudItem xs="12" md="4">
+        <MudPaper Elevation="2" Class="pa-4" Style="position: sticky; top: 64px;">
+            <MudText Typo="Typo.h6" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" /> Giỏ hàng (@checkoutVM.CartItems.Count)
+            </MudText>
+
+            @if (checkoutVM.CartItems.Any())
+            {
+                <div style="max-height: 400px; overflow-y: auto;">
+                    @foreach (var item in checkoutVM.CartItems)
+                    {
+                        <MudCard Class="mb-2" Elevation="1">
+                            <MudCardContent Class="pa-2">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                    <MudStack Spacing="0" Style="flex: 1;">
+                                        <MudText Typo="Typo.body2" Class="font-weight-bold">@item.ProductName</MudText>
+                                        <MudText Typo="Typo.caption">@FormatHelper.ToVNPrice(item.UnitPrice) x @item.Quantity</MudText>
+                                    </MudStack>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                  Color="Color.Error" 
+                                                  Size="Size.Small"
+                                                  OnClick="@(() => RemoveFromCart(item))" />
+                                </MudStack>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-2">
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Remove" 
+                                                      Size="Size.Small" 
+                                                      OnClick="@(() => DecreaseQuantity(item))" />
+                                        <MudText Typo="Typo.body2" Class="px-2 pt-1">@item.Quantity</MudText>
+                                        <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                                      Size="Size.Small" 
+                                                      OnClick="@(() => IncreaseQuantity(item))" />
+                                    </MudStack>
+                                    <MudText Typo="Typo.body1" Color="Color.Primary" Class="font-weight-bold">
+                                        @FormatHelper.ToVNPrice(item.TotalPrice)
+                                    </MudText>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    }
+                </div>
+
+                <MudDivider Class="my-3" />
+                
+                <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-background-grey);">
+                    <MudText Typo="Typo.h5" Align="Align.Center" Color="Color.Success" Class="font-weight-bold">
+                        Tổng: @FormatHelper.ToVNPrice(checkoutVM.TotalAmount)
+                    </MudText>
+                </MudPaper>
+
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Success" 
+                          FullWidth="true" 
+                          Class="mt-3"
+                          Size="Size.Large"
+                          StartIcon="@Icons.Material.Filled.Payment"
+                          OnClick="HandleCheckout">
+                    Thanh toán
+                </MudButton>
+                
+                <MudButton Variant="Variant.Outlined" 
+                          Color="Color.Error" 
+                          FullWidth="true" 
+                          Class="mt-2"
+                          Size="Size.Medium"
+                          StartIcon="@Icons.Material.Filled.Clear"
+                          OnClick="()=>ClearCart()">
+                    Xóa giỏ hàng
+                </MudButton>
+            }
+            else
+            {
+                <MudText Align="Align.Center" Color="Color.Default" Class="my-8">
+                    <MudIcon Icon="@Icons.Material.Filled.ShoppingCartCheckout" Size="Size.Large" Color="Color.Default" />
+                    <br />
+                    Giỏ hàng trống
+                </MudText>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private CheckoutViewModel checkoutVM = new();
+    private string searchProduct = string.Empty;
+    private string filterCategory = string.Empty;
+    private List<ProductModel> allProducts = new();
+    private List<ProductModel> displayProducts = new();
+    private bool isLoadingProducts = false;
+    private List<CategoryModel> categoryList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+        await LoadCategories();
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            isLoadingProducts = true;
+            allProducts = await Http.GetFromJsonAsync<List<ProductModel>>("api/product") ?? new();
+            displayProducts = allProducts.Where(p => p.IsActive).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi tải sản phẩm: {ex.Message}", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+        finally
+        {
+            isLoadingProducts = false;
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        categoryList = await Http.GetFromJsonAsync<List<CategoryModel>>("api/category") ?? new();
+    }
+
+    private async Task SearchProducts()
+    {
+        await Task.CompletedTask;
+
+        if (string.IsNullOrEmpty(searchProduct.Trim()))
+        {
+            displayProducts = allProducts.Where(p => p.IsActive && (
+                string.IsNullOrEmpty(filterCategory) || 
+                p.CategoryName == filterCategory
+            )).ToList();
+        }
+        else
+        {
+            var search = searchProduct.ToLower();
+            displayProducts = allProducts
+                .Where(p => p.IsActive &&
+                    (string.IsNullOrEmpty(filterCategory) ||  p.CategoryName == filterCategory) &&
+                    (p.ProductName.ToLower().Contains(search) || 
+                    (p.Barcode != null && p.Barcode.Contains(search))))
+                .ToList();
+        }
+    }
+
+    private async Task FilterProducts(string type = "")
+    {
+        filterCategory = type;
+        await SearchProducts();
+    }
+
+    private void AddToCart(ProductModel product)
+    {
+        if (product.StockQuantity <= 0)
+        {
+            Snackbar.Add("Sản phẩm hết hàng!", Severity.Warning, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+            return;
+        }
+
+        var existingItem = checkoutVM.CartItems.FirstOrDefault(x => x.ProductId == product.ProductId);
+
+        if (existingItem != null)
+        {
+            if (existingItem.Quantity < product.StockQuantity)
+            {
+                existingItem.Quantity++;
+                Snackbar.Add($"Đã tăng số lượng {product.ProductName}!", Severity.Success, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
+            }
+            else
+            {
+                Snackbar.Add("Không đủ hàng trong kho!", Severity.Warning, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
+                return;
+            }
+        }
+        else
+        {
+            checkoutVM.CartItems.Add(new CartItem
+            {
+                ProductId = product.ProductId,
+                ProductName = product.ProductName,
+                UnitPrice = product.Price,
+                Quantity = 1
+            });
+            Snackbar.Add($"Đã thêm {product.ProductName}!", Severity.Success, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+
+        CalculateTotal();
+    }
+
+    private void IncreaseQuantity(CartItem item)
+    {
+        var product = allProducts.FirstOrDefault(p => p.ProductId == item.ProductId);
+        if (product != null && item.Quantity < product.StockQuantity)
+        {
+            item.Quantity++;
+            CalculateTotal();
+        }
+        else
+        {
+            Snackbar.Add("Không đủ hàng trong kho!", Severity.Warning, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+    }
+
+    private void DecreaseQuantity(CartItem item)
+    {
+        if (item.Quantity > 1)
+        {
+            item.Quantity--;
+            CalculateTotal();
+        }
+        else
+        {
+            RemoveFromCart(item);
+        }
+    }
+
+    private void RemoveFromCart(CartItem item)
+    {
+        checkoutVM.CartItems.Remove(item);
+        CalculateTotal();
+        Snackbar.Add("Đã xóa khỏi giỏ hàng!", Severity.Info, options =>
+        {
+            options.ShowTransitionDuration = 500;
+            options.HideTransitionDuration = 400;
+            options.VisibleStateDuration = 900;
+        });
+    }
+
+    private void ClearCart(bool isCheckout = false)
+    {
+        checkoutVM.CartItems.Clear();
+        CalculateTotal();
+        if (!isCheckout)
+        {
+            Snackbar.Add("Đã xóa giỏ hàng!", Severity.Info, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+    }
+
+    private void CalculateTotal()
+    {
+        checkoutVM.Subtotal = checkoutVM.CartItems.Sum(x => x.TotalPrice);
+        checkoutVM.TotalAmount = checkoutVM.Subtotal - checkoutVM.DiscountAmount;
+    }
+
+    private async Task HandleCheckout()
+    {
+        var parameters = new DialogParameters
+        {
+            ["CartItems"] = checkoutVM.CartItems,
+            ["TotalAmount"] = checkoutVM.TotalAmount
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CheckoutDialog>("Xác nhận thanh toán", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result!.Canceled && result.Data is bool success && success)
+        {
+            ClearCart(true);
+            Snackbar.Add("Thanh toán thành công!", Severity.Success, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+    }
+}

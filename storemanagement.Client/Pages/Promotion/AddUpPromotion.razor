@@ -1,0 +1,238 @@
+﻿@page "/admin/promotion/add"
+@page "/admin/promotion/edit/{id:int}"
+@using StoreManagement.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>@(Id.HasValue ? "Sửa" : "Thêm") khuyến mãi | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+        @(Id.HasValue ? "SỬA KHUYẾN MÃI" : "THÊM KHUYẾN MÃI")
+    </MudText>
+
+    <MudPaper Elevation="2" Class="pa-6">
+        @if (isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            <MudText Align="Align.Center" Class="my-4">Đang tải...</MudText>
+        }
+        else
+        {
+            <MudForm @ref="form" @bind-IsValid="@isFormValid">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="promotion.PromoCode"
+                                      Label="Mã khuyến mãi"
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập mã khuyến mãi"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="promotion.DiscountType"
+                                   Label="Loại giảm giá"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            <MudSelectItem Value="@("percent")">Phần trăm (%)</MudSelectItem>
+                            <MudSelectItem Value="@("fixed")">Số tiền (VNĐ)</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="promotion.Description"
+                                      Label="Mô tả"
+                                      Lines="2"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="promotion.DiscountValue"
+                                         Label="Giá trị giảm"
+                                         Required="true"
+                                         Format="N0"
+                                         Variant="Variant.Outlined"
+                                         Min="0" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="promotion.MinOrderAmount"
+                                         Label="Giá trị đơn hàng tối thiểu"
+                                         Format="N0"
+                                         Variant="Variant.Outlined"
+                                         Min="0" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker @bind-Date="startDate"
+                                       Label="Ngày bắt đầu"
+                                       Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker @bind-Date="endDate"
+                                       Label="Ngày kết thúc"
+                                       Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="promotion.UsageLimit"
+                                         Label="Giới hạn sử dụng"
+                                         Variant="Variant.Outlined"
+                                         Min="-1" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="promotion.Status"
+                                   Label="Trạng thái"
+                                   Variant="Variant.Outlined">
+                            <MudSelectItem Value="@("active")">Hoạt động</MudSelectItem>
+                            <MudSelectItem Value="@("inactive")">Ngừng</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex gap-2 justify-end">
+                        <MudButton Variant="Variant.Outlined"
+                                   OnClick="@(() => Navigation.NavigateTo("/admin/promotion"))">
+                            Hủy
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SavePromotion"
+                                   Disabled="@(!isFormValid || isSaving)">
+                            @if (isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <span class="ml-2">Đang lưu...</span>
+                            }
+                            else
+                            {
+                                <span>@(Id.HasValue ? "Cập nhật" : "Thêm mới")</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private MudForm form;
+    private bool isFormValid;
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private Promotion promotion = new() { DiscountType = "percent", Status = "active" };
+    private DateTime? startDate;
+    private DateTime? endDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id.HasValue)
+        {
+            await LoadPromotion();
+        }
+    }
+
+    private async Task LoadPromotion()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await Http.GetFromJsonAsync<Promotion>($"api/promotion/{Id}");
+            if (response != null)
+            {
+                promotion = response;
+                startDate = promotion.StartDate;
+                endDate = promotion.EndDate;
+            }
+            else
+            {
+                Snackbar.Add("Không tìm thấy khuyến mãi", Severity.Error, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
+                Navigation.NavigateTo("/admin/promotion");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi khi tải dữ liệu: {ex.Message}", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+            Navigation.NavigateTo("/admin/promotion");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SavePromotion()
+    {
+        await form.Validate();
+        if (!isFormValid) return;
+
+        try
+        {
+            isSaving = true;
+            promotion.StartDate = startDate;
+            promotion.EndDate = endDate;
+
+            HttpResponseMessage response;
+            if (Id.HasValue)
+            {
+                response = await Http.PutAsJsonAsync($"api/promotion/{Id}", promotion);
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/promotion", promotion);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(
+                    Id.HasValue ? "Cập nhật khuyến mãi thành công" : "Thêm khuyến mãi thành công",
+                    Severity.Success, options =>
+                    {
+                        options.ShowTransitionDuration = 500;
+                        options.HideTransitionDuration = 400;
+                        options.VisibleStateDuration = 900;
+                    }
+                );
+                Navigation.NavigateTo("/admin/promotion");
+            }
+            else
+            {
+                Snackbar.Add("Không thể lưu khuyến mãi", Severity.Error, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi khi lưu: {ex.Message}", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+}

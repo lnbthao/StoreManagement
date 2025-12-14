@@ -1,0 +1,85 @@
+﻿@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.Helpers
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Khuyến mãi #@Promotion?.PromoId — @Promotion?.PromoCode</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Promotion != null)
+        {
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudText><strong>Mô tả:</strong></MudText>
+                    <MudText>@(Promotion.Description ?? "—")</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText><strong>Trạng thái:</strong></MudText>
+                    <MudChip T="string" Size="Size.Small" Color="@(Promotion.Status == "active" ? Color.Success : Color.Error)">
+                        @Promotion.Status
+                    </MudChip>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption">Loại giảm</MudText>
+                    <MudText>@(Promotion.DiscountType == "percent" ? "Phần trăm" : "Tiền mặt")</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption">Giá trị giảm</MudText>
+                    <MudText>
+                        @if (Promotion.DiscountType == "percent")
+                        {
+                            <text>@Promotion.DiscountValue%</text>
+                        }
+                        else
+                        {
+                            <text>@FormatHelper.ToVNPrice(Promotion.DiscountValue)</text>
+                        }
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption">Đơn tối thiểu</MudText>
+                    <MudText>
+                        @(Promotion.MinOrderAmount.HasValue && Promotion.MinOrderAmount > 0 ? FormatHelper.ToVNPrice(Promotion.MinOrderAmount.Value) : "Không yêu cầu")
+                    </MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.caption">Ngày bắt đầu</MudText>
+                    <MudText>@(Promotion.StartDate.HasValue ? FormatHelper.ToVNDate(Promotion.StartDate.Value) : "—")</MudText>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.caption">Ngày kết thúc</MudText>
+                    <MudText>@(Promotion.EndDate.HasValue ? FormatHelper.ToVNDate(Promotion.EndDate.Value) : "—")</MudText>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.caption">Giới hạn sử dụng</MudText>
+                    <MudText>
+                        @if (Promotion.UsageLimit.HasValue && Promotion.UsageLimit.Value > 0)
+                        {
+                            <text>@Promotion.UsageLimit lần</text>
+                        }
+                        else
+                        {
+                            <text>Không giới hạn</text>
+                        }
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Đóng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Promotion? Promotion { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+}

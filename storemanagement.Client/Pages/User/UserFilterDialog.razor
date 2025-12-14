@@ -1,0 +1,61 @@
+﻿@using StoreManagement.Shared.DTOs
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Bộ lọc: Người dùng</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.Role" Label="Vai trò" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("admin")">Quản trị viên</MudSelectItem>
+                    <MudSelectItem Value="@("staff")">Nhân viên</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("active")">Đang hoạt động</MudSelectItem>
+                    <MudSelectItem Value="@("inactive")">Vô hiệu hóa</MudSelectItem>
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Error" OnClick="Clear">Xóa lọc</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ApplyFilter">Áp dụng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public UserFilterDto CurrentFilters { get; set; } = new();
+
+    private UserFilterDto filters = new();
+
+    protected override void OnInitialized()
+    {
+        filters = new UserFilterDto
+        {
+            Role = CurrentFilters.Role ?? "",
+            Status = CurrentFilters.Status ?? "active"
+        };
+    }
+
+    private void ApplyFilter()
+    {
+        MudDialog.Close(DialogResult.Ok(filters));
+    }
+
+    private void Clear()
+    {
+        filters = new UserFilterDto { Status = "active" };
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

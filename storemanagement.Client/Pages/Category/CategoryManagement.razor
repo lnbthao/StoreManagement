@@ -1,0 +1,133 @@
+﻿@page "/admin/category"
+@using StoreManagement.Shared.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Loại sản phẩm | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">Quản lý loại sản phẩm</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4" md="3">
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Success" 
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="@(() => Navigation.NavigateTo("/admin/category/add"))"
+                       FullWidth="true">
+                Thêm loại
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="8" md="9">
+            <MudTextField @bind-Value="searchText"
+                          Placeholder="Tìm tên loại..."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true"
+                          DebounceInterval="300"
+                          Clearable="true"
+                          FullWidth="true" />
+        </MudItem>
+    </MudGrid>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudTable Items="@filteredCategories" Hover="true" Striped="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Mã£</MudTh>
+                    <MudTh>Tên loại</MudTh>
+                    <MudTh Style="text-align:center">Trạng thái</MudTh>
+                    <MudTh Style="text-align:center">Hành động</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.CategoryId</MudTd>
+                    <MudTd>@context.CategoryName</MudTd>
+                    <MudTd Style="text-align:center">
+                        <MudChip T="string" T="string" Size="Size.Small" Color="@(context.IsActive == true ? Color.Success : Color.Error)">
+                            @(context.IsActive == true ? "Hoạt động" : "Ngừng")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd Style="text-align:center">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                     Color="Color.Primary" 
+                                     Size="Size.Small"
+                                     OnClick="@(() => Navigation.NavigateTo($"/admin/category/edit/{context.CategoryId}"))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                     Color="Color.Error" 
+                                     Size="Size.Small"
+                                     OnClick="@(() => HandleDelete(context))" />
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Align="Align.Center" Class="py-5">Không có loại sản phẩm nào!</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private List<Category> categories = new();
+    private string searchText = string.Empty;
+    private bool isLoading = true;
+
+    private List<Category> filteredCategories => string.IsNullOrWhiteSpace(searchText)
+        ? categories
+        : categories.Where(c => c.CategoryName.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        isLoading = true;
+        try
+        {
+            var response = await Http.GetAsync("/api/category");
+            if (response.IsSuccessStatusCode)
+            {
+                categories = await response.Content.ReadFromJsonAsync<List<Category>>() ?? new();
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleDelete(Category category)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Xác nhận xóa",
+            $"Bạn có chắc muốn xóa loại \"{category.CategoryName}\"?",
+            yesText: "Xóa",
+            cancelText: "Hủy"
+        );
+
+        if (confirmed == true)
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"/api/category/{category.CategoryId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    Snackbar.Add("Xóa thành công!", Severity.Success);
+                    await LoadCategories();
+                }
+            }
+            catch
+            {
+                Snackbar.Add("Xóa thất bại!", Severity.Error);
+            }
+        }
+    }
+}

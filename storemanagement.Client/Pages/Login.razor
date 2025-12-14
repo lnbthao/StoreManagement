@@ -1,0 +1,126 @@
+﻿@page "/"
+@page "/login"
+@layout EmptyLayout
+@using StoreManagement.Shared.DTOs
+@using StoreManagement.Client.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Đăng nhập | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="d-flex align-center justify-center" Style="min-height: 100vh;">
+    <MudPaper Elevation="4" Class="pa-8" Style="width: 100%; max-width: 450px;">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-6">
+            ĐĂNG NHẬP
+        </MudText>
+        
+        <MudForm @ref="form" @bind-IsValid="@isFormValid">
+            <MudTextField @bind-Value="loginModel.Username"
+                         Label="Tên đăng nhập"
+                         Variant="Variant.Outlined"
+                         Required="true"
+                         RequiredError="Vui lòng nhập tên đăng nhập"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Person"
+                         Class="mb-4"
+                         Disabled="isLoading" />
+
+            <MudTextField @bind-Value="loginModel.Password"
+                         Label="Mật khẩu"
+                         Variant="Variant.Outlined"
+                         InputType="@passwordInputType"
+                         Required="true"
+                         RequiredError="Vui lòng nhập mật khẩu"
+                         Adornment="Adornment.End"
+                         AdornmentIcon="@passwordIcon"
+                         OnAdornmentClick="TogglePasswordVisibility"
+                         Class="mb-6"
+                         Disabled="isLoading" />
+
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      FullWidth="true"
+                      Size="Size.Large"
+                      OnClick="HandleLogin"
+                      Disabled="isLoading || !isFormValid">
+                @if (isLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                    <span>Đang đăng nhập...</span>
+                }
+                else
+                {
+                    <span>Đăng nhập</span>
+                }
+            </MudButton>
+        </MudForm>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-4">
+                @errorMessage
+            </MudAlert>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private MudForm? form;
+    private LoginRequestDto loginModel = new();
+    private bool isFormValid;
+    private bool isLoading = false;
+    private string? errorMessage;
+    private bool showPassword = false;
+
+    private InputType passwordInputType => showPassword ? InputType.Text : InputType.Password;
+    private string passwordIcon => showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff;
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task HandleLogin()
+    {
+        if (form == null) return;
+
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await AuthService.LoginAsync(loginModel);
+
+            if (result?.Success == true && result.User != null)
+            {
+                Snackbar.Add("Đăng nhập thành công!", Severity.Success);
+
+                // Navigate based on role
+                if (result.User.Role == "admin")
+                {
+                    Navigation.NavigateTo("/admin", true);
+                }
+                else
+                {
+                    Navigation.NavigateTo("/staff", true);
+                }
+            }
+            else
+            {
+                errorMessage = result?.Message ?? "Đăng nhập thất bại";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi kết nối: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

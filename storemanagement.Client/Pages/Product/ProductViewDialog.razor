@@ -1,0 +1,111 @@
+﻿@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.Helpers
+@inject HttpClient Http
+
+<MudDialog>
+    <DialogContent>
+        @if (Product != null)
+        {
+            <MudGrid>
+                @* Image Column *@
+                <MudItem xs="12" md="4">
+                    <MudPaper Elevation="0" Class="d-flex justify-center align-center pa-4" Style="min-height: 380px;">
+                        @if (!string.IsNullOrEmpty(Product.ImageUrl))
+                        {
+                            <MudImage Src="@GetImageUrl(Product.ImageUrl)" 
+                                     Alt="@Product.ProductName" 
+                                     ObjectFit="ObjectFit.Contain"
+                                     Class="rounded"
+                                     Style="max-height: 380px; max-width: 100%;" />
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-column align-center">
+                                <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Default" />
+                                <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-2">Chưa có hình ảnh</MudText>
+                            </div>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                @* Information Column *@
+                <MudItem xs="12" md="8">
+                    <MudSimpleTable Dense="true" Hover="false" Bordered="false">
+                        <tbody>
+                            <tr>
+                                <td width="35%" class="fw-bold">Mã£ SP</td>
+                                <td>#@Product.ProductId</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Tên sản phẩm</td>
+                                <td><MudText Typo="Typo.h6">@Product.ProductName</MudText></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Barcode</td>
+                                <td>@(Product.Barcode ?? "â€”")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Loại</td>
+                                <td>@(Product.CategoryName ?? "â€”")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Đơn vị</td>
+                                <td>@(Product.Unit ?? "â€”")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Giá bán</td>
+                                <td><MudText Typo="Typo.h5" Color="Color.Error">@FormatHelper.ToVNPrice(Product.Price)</MudText></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Tồn kho</td>
+                                <td>
+                                    @if (Product.IsActive)
+                                    {
+                                        <MudText Typo="Typo.h5" Color="Color.Success">
+                                            @FormatHelper.ToVNNumber(Product.StockQuantity ?? 0)
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body1" Color="Color.Error" Class="fw-bold">Ngừng bán</MudText>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Nhà cung cấp</td>
+                                <td>@(Product.SupplierName ?? "â€”")</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Trạng thái</td>
+                                <td>
+                                    <MudChip T="string" T="string" Size="Size.Medium" Color="@(Product.IsActive ? Color.Success : Color.Error)">
+                                        @(Product.IsActive ? "Đang bán" : "Ngừng bán")
+                                    </MudChip>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudItem>
+            </MudGrid>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default">Đóng</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Product? Product { get; set; }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetImageUrl(string imageUrl)
+    {
+        const string backendUrl = "http://localhost:5069";
+        return $"{backendUrl}{imageUrl}";
+    }
+}

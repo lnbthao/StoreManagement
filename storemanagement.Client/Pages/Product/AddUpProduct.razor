@@ -1,0 +1,324 @@
+﻿@page "/admin/product/add"
+@page "/admin/product/edit/{id:int}"
+@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.DTOs
+@using Microsoft.AspNetCore.Components.Forms
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>@(Id.HasValue ? "Sửa" : "Thêm") sản phẩm | Quản lý kho hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+        @(Id.HasValue ? "SỬA SẢN PHẨM" : "THÊM SẢN PHẨM")
+    </MudText>
+
+    <MudPaper Elevation="2" Class="pa-6">
+        @if (isLoading)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+            <MudText Align="Align.Center" Class="my-4">Đang tải...</MudText>
+        }
+        else
+        {
+            <MudForm @ref="form" @bind-IsValid="@isFormValid">
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="product.ProductName"
+                                      Label="Tên sản phẩm"
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập tên sản phẩm"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="product.Barcode"
+                                      Label="Barcode"
+                                      Variant="Variant.Outlined"
+                                      Disabled="true" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?" @bind-Value="product.CategoryId"
+                                   Label="Danh mục"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            @foreach (var cat in categories)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)cat.CategoryId)">@cat.CategoryName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="int?" @bind-Value="product.SupplierId"
+                                   Label="Nhà cung cấp"
+                                   Variant="Variant.Outlined">
+                            @foreach (var sup in suppliers)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)sup.SupplierId)">@sup.SupplierName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="product.Price"
+                                         Label="Giá bán"
+                                         Required="true"
+                                         Variant="Variant.Outlined"
+                                         Min="0" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string" @bind-Value="product.Unit"
+                                   Label="Đơn vị tính"
+                                   Variant="Variant.Outlined"
+                                   Required="true">
+                            <MudSelectItem T="string" Value="@("cái")">Cái</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("hộp")">Hộp</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("chai")">Chai</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("lọ")">Lọ</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("túi")">Túi</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("gói")">Gói</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("kg")">Kg</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("gram")">Gram</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("lít")">Lít</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("ml")">Ml</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="HandleFileSelected" Accept=".jpg,.jpeg,.png,.webp">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Chọn ảnh sản phẩm
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                        @if (!string.IsNullOrEmpty(imagePreviewUrl))
+                        {
+                            <MudPaper Class="mt-3 pa-3" Elevation="0">
+                                <MudText Typo="Typo.caption" Class="mb-2">Xem trước:</MudText>
+                                <MudImage Src="@imagePreviewUrl" Alt="Preview" Style="max-height: 200px; max-width: 100%;" ObjectFit="ObjectFit.Contain" />
+                            </MudPaper>
+                        }
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="product.IsActive" 
+                                   Color="Color.Success"
+                                   Label="Đang bán" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex gap-2 justify-end">
+                        <MudButton Variant="Variant.Outlined"
+                                   OnClick="@(() => Navigation.NavigateTo("/admin/product"))">
+                            Hủy
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SaveProduct"
+                                   Disabled="@(!isFormValid || isSaving)">
+                            @if (isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                <span class="ml-2">Đang lưu...</span>
+                            }
+                            else
+                            {
+                                <span>@(Id.HasValue ? "Cập nhật" : "Thêm mới")</span>
+                            }
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private MudForm form;
+    private bool isFormValid;
+    private bool isLoading = false;
+    private bool isSaving = false;
+    private ProductDto product = new() { IsActive = true };
+    private List<Category> categories = new();
+    private List<Supplier> suppliers = new();
+    private IBrowserFile? selectedImage;
+    private string? imagePreviewUrl;
+
+    private void HandleFileSelected(IBrowserFile file)
+    {
+        selectedImage = file;
+        if (file != null)
+        {
+            _ = CreateImagePreview(file);
+        }
+    }
+
+    private async Task CreateImagePreview(IBrowserFile file)
+    {
+        try
+        {
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Không thể tạo preview: {ex.Message}", Severity.Error);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDropdowns();
+        if (Id.HasValue)
+        {
+            await LoadProduct();
+        }
+        else
+        {
+            // Tự động sinh barcode cho sản phẩm mới
+            product.Barcode = GenerateBarcode();
+        }
+    }
+
+    private string GenerateBarcode()
+    {
+        // Sinh barcode theo format: timestamp + random
+        var timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString();
+        var random = new Random().Next(1000, 9999);
+        return $"{timestamp.Substring(timestamp.Length - 8)}{random}";
+    }
+
+    private async Task LoadDropdowns()
+    {
+        try
+        {
+            var catTask = Http.GetFromJsonAsync<List<Category>>("api/category");
+            var supTask = Http.GetFromJsonAsync<List<Supplier>>("api/supplier");
+            await Task.WhenAll(catTask, supTask);
+            categories = catTask.Result ?? new();
+            suppliers = supTask.Result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi tải dữ liệu: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadProduct()
+    {
+        try
+        {
+            isLoading = true;
+            var response = await Http.GetFromJsonAsync<ProductDto>($"api/product/{Id}");
+            if (response != null)
+            {
+                product = response;
+                // Nếu có ảnh cũ, hiển thị preview
+                if (!string.IsNullOrEmpty(product.ImageUrl))
+                {
+                    imagePreviewUrl = $"http://localhost:5069{product.ImageUrl}";
+                }
+            }
+            else
+            {
+                Snackbar.Add("Không tìm thấy sản phẩm", Severity.Error);
+                Navigation.NavigateTo("/admin/product");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi khi tải dữ liệu: {ex.Message}", Severity.Error);
+            Navigation.NavigateTo("/admin/product");
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task SaveProduct()
+    {
+        await form.Validate();
+        if (!isFormValid) return;
+
+        try
+        {
+            isSaving = true;
+            
+            // Upload ảnh nếu có chọn ảnh mới
+            if (selectedImage != null)
+            {
+                var imageUrl = await UploadImage(selectedImage);
+                if (imageUrl != null)
+                {
+                    product.ImageUrl = imageUrl;
+                }
+            }
+            
+            HttpResponseMessage response;
+
+            if (Id.HasValue)
+            {
+                response = await Http.PutAsJsonAsync($"api/product/{Id}", product);
+            }
+            else
+            {
+                // Khi thêm mới, set ProductId = 0 thay vì null
+                product.ProductId = 0;
+                response = await Http.PostAsJsonAsync("api/product", product);
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add(Id.HasValue ? "Cập nhật sản phẩm thành công" : "Thêm sản phẩm thành công", Severity.Success);
+                Navigation.NavigateTo("/admin/product");
+            }
+            else { Snackbar.Add("Không thể lưu sản phẩm", Severity.Error); }
+        }
+        catch (Exception ex) { Snackbar.Add($"Lỗi khi lưu: {ex.Message}", Severity.Error); }
+        finally { isSaving = false; }
+    }
+    
+    private async Task<string?> UploadImage(IBrowserFile file)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+            
+            var response = await Http.PostAsync("api/product/upload-image", content);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<UploadImageResponse>();
+                return result?.Url;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Lỗi upload ảnh: {error}", Severity.Error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi upload ảnh: {ex.Message}", Severity.Error);
+            return null;
+        }
+    }
+    
+    private class UploadImageResponse
+    {
+        public string? Url { get; set; }
+    }
+}

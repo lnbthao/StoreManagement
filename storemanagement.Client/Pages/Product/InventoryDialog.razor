@@ -1,0 +1,115 @@
+@using StoreManagement.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (Product != null)
+        {
+            <MudForm @ref="form">
+                <MudNumericField @bind-Value="quantity"
+                                Label="Số lượng nhập kho"
+                                Variant="Variant.Outlined"
+                                Min="1"
+                                Required="true"
+                                RequiredError="Vui lòng nhập số lượng"
+                                Disabled="isSaving"
+                                Immediate="true"
+                                AutoFocus="true" />
+
+                <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-3">
+                    Tồn kho hiện tại: <strong class="mud-success-text">@(Product.StockQuantity ?? 0)</strong>
+                </MudText>
+            </MudForm>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default" Disabled="isSaving">Hủy</MudButton>
+        <MudButton OnClick="HandleSubmit" 
+                   Color="Color.Success" 
+                   Variant="Variant.Filled" 
+                   Disabled="isSaving">
+            @if (isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                <span>Đang nhập...</span>
+            }
+            else
+            {
+                <span>Nhập kho</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] 
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public Product? Product { get; set; }
+
+    private MudForm? form;
+    private int quantity = 0;
+    private bool isSaving = false;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task HandleSubmit()
+    {
+        if (form == null || Product == null) return;
+
+        await form.Validate();
+        if (!form.IsValid) return;
+
+        if (quantity <= 0)
+        {
+            Snackbar.Add("Vui lòng nhập số lượng lớn hơn 0!", Severity.Warning);
+            return;
+        }
+
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            var request = new
+            {
+                ProductId = Product.ProductId,
+                Quantity = quantity
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/product/import-inventory", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<InventoryResponse>();
+                
+                if (result != null)
+                {
+                    MudDialog.Close(DialogResult.Ok(result.NewStock));
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Snackbar.Add($"Nhập kho thất bại: {errorContent}", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private class InventoryResponse
+    {
+        public int NewStock { get; set; }
+        public string? Message { get; set; }
+    }
+}

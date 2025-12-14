@@ -1,0 +1,424 @@
+@using StoreManagement.Shared.ViewModels
+@using StoreManagement.Shared.Helpers
+@using StoreManagement.Client.Services
+@using Microsoft.JSInterop
+@using PromotionModel = StoreManagement.Shared.Models.Promotion
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Xác nhận thanh toán</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="form" @bind-IsValid="isFormValid">
+            <MudTextField @bind-Value="customerPhone" Label="Số điện thoại khách hàng" Variant="Variant.Outlined"
+                Required="true" RequiredError="Vui lòng nhập số điện thoại"
+                Validation="@(new Func<string, string?>(ValidatePhone))" Adornment="Adornment.Start"
+                AdornmentIcon="@Icons.Material.Filled.Phone" HelperText="Nhập SĐT để tìm khách hàng hoặc tạo mới" />
+
+            @if (foundCustomer != null)
+            {
+                <MudAlert Severity="Severity.Success" Class="mt-3">
+                    Khách hàng: <strong>@foundCustomer.CustomerName</strong>
+                </MudAlert>
+            }
+            else if (!string.IsNullOrEmpty(customerPhone) && customerPhone.Length >= 10)
+            {
+                <MudAlert Severity="Severity.Info" Class="mt-3">
+                    Khách hàng mới - sẽ được tạo tự động
+                </MudAlert>
+            }
+
+            <MudDivider Class="my-4" />
+
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Chi tiết đơn hàng:</MudText>
+            @foreach (var item in CartItems)
+            {
+                <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                    <MudText Typo="Typo.body2">@item.ProductName x @item.Quantity</MudText>
+                    <MudText Typo="Typo.body2">@FormatHelper.ToVNPrice(item.TotalPrice)</MudText>
+                </MudStack>
+            }
+
+            <MudDivider Class="my-3" />
+
+            <MudSelect Value="@promoId"
+                        ValueChanged="@((int value) => OnPromoCodeChanged(value))"
+                        Label="Mã giảm giá"
+                        Variant="Variant.Outlined"
+                        Class="@(isPromoError ? "mud-input-error mud-color-error" : "")"
+            >
+                <MudSelectItem Value="0">Không áp dụng</MudSelectItem>
+                @foreach (var promotion in promotions)
+                {
+                    <MudSelectItem Value="@promotion.PromoId">@promotion.PromoCode</MudSelectItem>
+                }
+            </MudSelect>
+            <MudText Color="Color.Error" Style="font-size:14px;margin-top:2px">@errorMessage</MudText>
+
+            <MudDivider Class="my-3" />
+
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.h6">Tổng cộng:</MudText>
+                <MudText Typo="Typo.h6" Color="@(DiscountAmount > 0 ? Color.Warning : Color.Success)">@FormatHelper.ToVNPrice(TotalAmount)</MudText>
+            </MudStack>
+
+            @if (DiscountAmount > 0)
+            {
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">Số tiền giảm:</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Error">@FormatHelper.ToVNPrice(DiscountAmount)</MudText>
+                </MudStack>                
+
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">Tổng sau khi giảm:</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Success">@FormatHelper.ToVNPrice(TotalAmount - DiscountAmount)</MudText>
+                </MudStack>
+            }
+
+            <MudRadioGroup @bind-Value="paymentMethod" Class="mt-4">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Phương thức thanh toán:</MudText>
+                <MudRadio Value="@("cash")" Color="Color.Primary">
+                    <MudStack Row="true" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.Payments" />
+                        <MudText>Tiền mặt</MudText>
+                    </MudStack>
+                </MudRadio>
+                <MudRadio Value="@("online")" Color="Color.Success">
+                    <MudStack Row="true" Spacing="2">
+                        <MudIcon Icon="@Icons.Material.Filled.CreditCard" />
+                        <MudText>MoMo</MudText>
+                    </MudStack>
+                </MudRadio>
+            </MudRadioGroup>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Secondary" OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="ConfirmCheckout"
+            Disabled="@(!isFormValid || isProcessing)">
+            @(isProcessing ? "Đang xử lý..." : "Xác nhận")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public List<CartItem> CartItems { get; set; } = new();
+
+    [Parameter]
+    public decimal TotalAmount { get; set; }
+
+    private MudForm form = null!;
+    private bool isFormValid;
+    private bool isPromoError = false;
+    private bool isProcessing = false;
+    private string customerPhone = "";
+    private int promoId = 0;
+    private decimal DiscountAmount { get; set; } = 0;
+    private string paymentMethod = "cash";
+    private Customer? foundCustomer;
+    private List<PromotionModel> promotions = [];
+    private string errorMessage = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        promotions = await Http.GetFromJsonAsync<List<PromotionModel>>($"api/promotion?availableOnly=true") ?? throw new Exception();
+    }
+
+    private string? ValidatePhone(string phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            foundCustomer = null;
+            return "Vui lòng nhập số điện thoại";
+        }
+
+        if (!phone.StartsWith("0") || phone.Length < 10 || phone.Length > 11)
+        {
+            foundCustomer = null;
+            return "Số điện thoại không hợp lệ";
+        }
+
+        if (!phone.All(char.IsDigit))
+        {
+            foundCustomer = null;
+            return "Số điện thoại chỉ chứa số";
+        }
+
+        // Tìm khách hàng khi nhập đủ SĐT
+        _ = SearchCustomer(phone);
+
+        return null;
+    }
+
+    private void OnPromoCodeChanged(int value)
+    {
+        int oldPromoId = promoId;
+        promoId = value;
+        ValidatePromoCode(oldPromoId);
+    }
+
+    private void ValidatePromoCode(int oldPromoId)
+    {
+        if (promoId > 0)
+        {
+            var currentPromo = promotions.First(p => p.PromoId == promoId);
+
+            if (currentPromo.UsageLimit == 0)
+            {
+                promoId = oldPromoId;
+                DiscountAmount = 0;
+                isPromoError = true;
+                errorMessage = "Mã giảm giá đã hết lượt sử dụng!";
+                return;
+            }
+
+            if (TotalAmount >= currentPromo.MinOrderAmount)
+            {
+                DiscountAmount = (currentPromo.DiscountType == "fixed") ? currentPromo.DiscountValue : TotalAmount * currentPromo.DiscountValue / 100;
+            }
+            else
+            {
+                promoId = oldPromoId;
+                DiscountAmount = 0;
+                isPromoError = true;
+                errorMessage = "Tổng đơn hàng phải đạt " + FormatHelper.ToVNPrice(currentPromo.MinOrderAmount!.Value) + " để dùng mã giảm giá!";
+                return;
+            }
+        }
+        else DiscountAmount = 0;
+
+        isPromoError = false;
+        errorMessage = "";
+    }
+
+    private async Task SearchCustomer(string phone)
+    {
+        try
+        {
+            var customers = await Http.GetFromJsonAsync<List<Customer>>($"api/customer?phone={phone}");
+            foundCustomer = customers?.FirstOrDefault();
+        }
+        catch
+        {
+            foundCustomer = null;
+        }
+    }
+
+    private async Task ConfirmCheckout()
+    {
+        await form.Validate();
+        if (!isFormValid) return;
+
+        try
+        {
+            isProcessing = true;
+
+            // Tạo hoặc lấy khách hàng
+            int customerId;
+            if (foundCustomer != null)
+            {
+                customerId = foundCustomer.CustomerId;
+            }
+            else
+            {
+                // Tạo khách hàng mới
+                var newCustomer = new
+                {
+                    CustomerName = $"KH_{customerPhone}",
+                    Phone = customerPhone
+                };
+
+                var response = await Http.PostAsJsonAsync("api/customer", newCustomer);
+                if (response.IsSuccessStatusCode)
+                {
+                    var created = await response.Content.ReadFromJsonAsync<Customer>();
+                    customerId = created!.CustomerId;
+                }
+                else
+                {
+                    Snackbar.Add("Không thể tạo khách hàng", Severity.Error, options => {
+                        options.ShowTransitionDuration = 500;
+                        options.HideTransitionDuration = 400;
+                        options.VisibleStateDuration = 900;
+                    });
+                    return;
+                }
+            }
+
+            // Tạo đơn hàng
+            // Lấy thông tin user đang đăng nhập
+            var currentUser = await AuthService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                Snackbar.Add("Vui lòng đăng nhập lại", Severity.Error, options => {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
+                return;
+            }
+
+            var orderRequest = new CreateOrderRequest
+            {
+                CustomerId = customerId,
+                UserId = currentUser.UserId,
+                PromoId = promoId > 0 ? promoId : null,
+                OrderDate = DateTime.Now,
+                Status = paymentMethod == "cash" ? "paid" : "pending",
+                TotalAmount = TotalAmount,
+                OrderItems = CartItems.Select(x => new CreateOrderItemRequest
+                {
+                    ProductId = x.ProductId,
+                    Quantity = x.Quantity,
+                    Price = x.UnitPrice
+                }).ToList()
+            };
+
+            var orderResponse = await Http.PostAsJsonAsync("api/order", orderRequest);
+            if (orderResponse.IsSuccessStatusCode)
+            {
+                // Nếu thanh toán bằng MoMo, gọi API MoMo
+                if (paymentMethod == "online")
+                {
+                    var orderResult = await orderResponse.Content.ReadFromJsonAsync<CreateOrderResult>();
+                    if (orderResult?.OrderId > 0)
+                    {
+                        try
+                        {
+                            // Gửi POST form để trình duyệt follow Redirect từ backend (không dùng axios)
+                            var orderId = orderResult.OrderId.ToString();
+                            var amount = Math.Round(TotalAmount - DiscountAmount).ToString(); // thêm - DiscountAmount
+                            var fullName = foundCustomer?.CustomerName ?? currentUser?.FullName ?? $"KH_{customerPhone}";
+                            var orderInfo = $"Thanh toán đơn hàng #{orderResult.OrderId}";
+                            
+                            Console.WriteLine($"Submitting MoMo form with OrderId: {orderId}, Amount: {amount}");
+
+                            // Tạo form và submit để chuyển trang
+                            var formContent = new MultipartFormDataContent
+                            {
+                                { new StringContent(orderId), "OrderId" },
+                                { new StringContent(amount), "Amount" },
+                                { new StringContent(fullName), "FullName" },
+                                { new StringContent(orderInfo), "OrderInfo" }
+                            };
+
+                            var momoResponse = await Http.PostAsync("api/payment/CreatePaymentMomo", formContent);
+
+                            if (momoResponse.IsSuccessStatusCode)
+                            {
+                                var momoResult = await momoResponse.Content.ReadFromJsonAsync<MomoPaymentResult>();
+                                if (momoResult != null && !string.IsNullOrEmpty(momoResult.PayUrl))
+                                {
+                                    // Redirect đến trang thanh toán MoMo
+                                    Navigation.NavigateTo(momoResult.PayUrl, true); // true = force load (thoát khỏi SPA)
+                                    return; // Return ngay để không đóng dialog
+                                }
+                                else
+                                {
+                                    Snackbar.Add("Không thể lấy link thanh toán MoMo", Severity.Error, options => {
+                                        options.ShowTransitionDuration = 500;
+                                        options.HideTransitionDuration = 400;
+                                        options.VisibleStateDuration = 900;
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                var errorMessage = await momoResponse.Content.ReadAsStringAsync();
+                                Snackbar.Add($"Lỗi khi tạo thanh toán MoMo: {errorMessage}", Severity.Error, options => {
+                                    options.ShowTransitionDuration = 500;
+                                    options.HideTransitionDuration = 400;
+                                    options.VisibleStateDuration = 900;
+                                });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"MoMo Exception: {ex.Message}");
+                            Snackbar.Add($"Lỗi khi submit form MoMo: {ex.Message}", Severity.Error, options => {
+                                options.ShowTransitionDuration = 500;
+                                options.HideTransitionDuration = 400;
+                                options.VisibleStateDuration = 900;
+                            });
+                            isProcessing = false;
+                            return;
+                        }
+                    }
+                }
+
+                // Chỉ đóng dialog nếu thanh toán tiền mặt
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("Không thể tạo đơn hàng", Severity.Error, options => {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error, options => {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private class CreateOrderRequest
+    {
+        public int CustomerId { get; set; }
+        public int UserId { get; set; }
+        public int? PromoId { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string Status { get; set; } = "";
+        public decimal TotalAmount { get; set; }
+        public decimal DecimalAmount { get; set; }
+        public List<CreateOrderItemRequest> OrderItems { get; set; } = new();
+    }
+
+    private class CreateOrderItemRequest
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal Price { get; set; }
+    }
+
+    private class CreateOrderResult
+    {
+        public int OrderId { get; set; }
+    }
+
+    private class MomoPaymentResult
+    {
+        public string PayUrl { get; set; } = "";
+    }
+
+    private class Customer
+    {
+        public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = "";
+        public string? Phone { get; set; }
+    }
+}
