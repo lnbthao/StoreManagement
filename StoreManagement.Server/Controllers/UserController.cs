@@ -12,7 +12,7 @@ using StoreManagement.Shared.DTOs;
 namespace StoreManagement.Server.Controllers;
 
 [ApiController]
-[Route("/api/[controller]")]
+[Route("api/[controller]")]
 public class UserController : Controller
 {
     private readonly StoreManagementContext _db;
