@@ -7,6 +7,10 @@
 @using StoreManagement.Shared.ViewModels
 @using StoreManagement.Client.Services
 @using StoreManagement.Client.Pages.Order
+@using OrderModel = StoreManagement.Shared.Models.Order
+@using UserModel = StoreManagement.Shared.Models.User
+@using CategoryModel = StoreManagement.Shared.Models.Category
+@using PromotionModel = StoreManagement.Shared.Models.Promotion
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
@@ -18,13 +22,24 @@
 <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
     <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">ĐƠN HÀNG CỦA TÔI</MudText>
 
-    <MudGrid Class="mb-4">
-        <MudItem xs="12">
-            <MudTextField @bind-Value="searchText" Placeholder="Tìm mã đơn, khách hàng..."
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Immediate="true" DebounceInterval="300" Clearable="true" FullWidth="true" />
-        </MudItem>
-    </MudGrid>
+    <MudPaper Elevation="2" Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.FilterList"
+                           OnClick="OpenFilterDialog"
+                           FullWidth="true">
+                    Lọc
+                </MudButton>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="9">
+                <MudTextField @bind-Value="searchText" Placeholder="Tìm mã đơn, khách hàng..."
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" DebounceInterval="300" Clearable="true" FullWidth="true" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
 
     @if (isLoading)
     {
@@ -88,10 +103,12 @@
 
 @code {
     private List<OrderDisplayDto> orders = new();
+    private List<OrderDisplayDto> allOrders = new();
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
     private int currentUserId = 0;
+    private OrderFilterDto currentFilters = new();
 
     private IEnumerable<OrderDisplayDto> filteredOrders
     {
@@ -129,14 +146,28 @@
             isLoading = true;
             errorMessage = "";
             
-            // Filter by current user ID
-            var url = $"api/order?userId={currentUserId}";
+            // Build query string with filters for current user
+            var queryParams = new List<string>();
+            queryParams.Add($"userId={currentUserId}");
+            
+            if (currentFilters.StartDate.HasValue)
+                queryParams.Add($"startDate={currentFilters.StartDate:yyyy-MM-dd}");
+            if (currentFilters.EndDate.HasValue)
+                queryParams.Add($"endDate={currentFilters.EndDate:yyyy-MM-dd}");
+            if (currentFilters.PromoId.HasValue)
+                queryParams.Add($"promoId={currentFilters.PromoId}");
+            if (!string.IsNullOrEmpty(currentFilters.Status))
+                queryParams.Add($"status={currentFilters.Status}");
+            if (currentFilters.CategoryId.HasValue)
+                queryParams.Add($"categoryId={currentFilters.CategoryId}");
+            
+            var url = $"api/order?{string.Join("&", queryParams)}";
             
             var response = await Http.GetFromJsonAsync<List<OrderDto>>(url);
             if (response != null)
             {
                 // Map OrderDto to OrderDisplayDto
-                orders = response.Select(o => new OrderDisplayDto
+                allOrders = response.Select(o => new OrderDisplayDto
                 {
                     OrderId = o.OrderId,
                     OrderDate = o.OrderDate,
@@ -144,9 +175,11 @@
                     TotalAmount = o.TotalAmount,
                     CustomerName = o.Customer?.Name ?? "Khách lẻ"
                 }).ToList();
+                orders = allOrders;
             }
             else
             {
+                allOrders = new List<OrderDisplayDto>();
                 orders = new List<OrderDisplayDto>();
             }
         }
@@ -194,7 +227,7 @@
             })}
         };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Large, FullWidth = true };
         await DialogService.ShowAsync<PaymentDialog>("Thanh toán đơn hàng", parameters, options);
     }
 
@@ -217,6 +250,45 @@
         {
             Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task OpenFilterDialog()
+    {
+        var parameters = new DialogParameters<OrderFilterDialog>
+        {
+            { x => x.CurrentFilters, currentFilters },
+            { x => x.Users, new List<UserModel>() }, // Staff không cần lọc theo user
+            { x => x.Promotions, await LoadPromotions() },
+            { x => x.Categories, await LoadCategories() }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<OrderFilterDialog>("Lọc đơn hàng", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is OrderFilterDto filter)
+        {
+            currentFilters = filter;
+            await LoadOrders();
+        }
+    }
+
+    private async Task<List<PromotionModel>> LoadPromotions()
+    {
+        try
+        {
+            return await Http.GetFromJsonAsync<List<PromotionModel>>("api/promotion") ?? new();
+        }
+        catch { return new(); }
+    }
+
+    private async Task<List<CategoryModel>> LoadCategories()
+    {
+        try
+        {
+            return await Http.GetFromJsonAsync<List<CategoryModel>>("api/category") ?? new();
+        }
+        catch { return new(); }
     }
     
     // DTO for table display

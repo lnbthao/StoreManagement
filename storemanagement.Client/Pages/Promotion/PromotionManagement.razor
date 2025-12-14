@@ -14,8 +14,8 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" sm="6" md="3">
-            <MudButton Variant="Variant.Filled" 
-                       Color="Color.Success" 
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
                        StartIcon="@Icons.Material.Filled.Add"
                        OnClick="@(() => Navigation.NavigateTo("/admin/promotion/add"))"
                        FullWidth="true">
@@ -23,8 +23,8 @@
             </MudButton>
         </MudItem>
         <MudItem xs="12" sm="6" md="2">
-            <MudButton Variant="Variant.Outlined" 
-                       Color="Color.Primary" 
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.FilterList"
                        OnClick="OpenFilterDialog"
                        FullWidth="true">
@@ -57,16 +57,16 @@
     else
     {
         <MudPaper Elevation="2">
-            <MudTable Items="@filteredPromotions" 
-                      Hover="true" 
-                      Striped="true" 
+            <MudTable Items="@filteredPromotions"
+                      Hover="true"
+                      Striped="true"
                       Dense="true"
                       Breakpoint="Breakpoint.Sm">
                 <HeaderContent>
                     <MudTh>Mã KM</MudTh>
                     <MudTh>Mô tả</MudTh>
                     <MudTh Style="text-align:center">Loại giảm</MudTh>
-                    <MudTh Style="text-align:right">Giá trị</MudTh>
+                    <MudTh Style="text-align:right; width: 110px">Giá trị</MudTh>
                     <MudTh Style="text-align:center">Bắt đầu</MudTh>
                     <MudTh Style="text-align:center">Kết thúc</MudTh>
                     <MudTh Style="text-align:center">Trạng thái</MudTh>
@@ -95,8 +95,8 @@
                             <span>@FormatHelper.ToVNPrice(context.DiscountValue)</span>
                         }
                     </MudTd>
-                    <MudTd Style="text-align:center">@(context.StartDate.HasValue ? FormatHelper.ToVNDate(context.StartDate.Value) : "â€”")</MudTd>
-                    <MudTd Style="text-align:center">@(context.EndDate.HasValue ? FormatHelper.ToVNDate(context.EndDate.Value) : "â€”")</MudTd>
+                    <MudTd Style="text-align:center">@(context.StartDate.HasValue? FormatHelper.ToVNDate(context.StartDate.Value) : "â€”")</MudTd>
+                    <MudTd Style="text-align:center">@(context.EndDate.HasValue? FormatHelper.ToVNDate(context.EndDate.Value) : "â€”")</MudTd>
                     <MudTd Style="text-align:center">
                         @if (context.Status == "active")
                         {
@@ -151,22 +151,30 @@
 
 @code {
     private List<Promotion> promotions = new();
+    private List<Promotion> allPromotions = new();
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
+
+    private PromotionFilterDto currentFilters = new();
 
     private IEnumerable<Promotion> filteredPromotions
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(searchText))
-                return promotions;
+            var result = promotions.ToList();
 
-            var search = searchText.ToLower().Trim();
-            return promotions.Where(p =>
-                (p.PromoCode?.ToLower().Contains(search) ?? false) ||
-                (p.Description?.ToLower().Contains(search) ?? false)
-            );
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(searchText))
+            {
+                var search = searchText.ToLower().Trim();
+                result = result.Where(p =>
+                    (p.PromoCode?.ToLower().Contains(search) ?? false) ||
+                    (p.Description?.ToLower().Contains(search) ?? false)
+                ).ToList();
+            }
+
+            return result;
         }
     }
 
@@ -182,12 +190,19 @@
             isLoading = true;
             errorMessage = "";
             var response = await Http.GetFromJsonAsync<List<Promotion>>("api/promotion");
-            promotions = response ?? new List<Promotion>();
+            allPromotions = response ?? new List<Promotion>();
+            promotions = allPromotions;
+            ApplyFilters();
         }
         catch (Exception ex)
         {
             errorMessage = $"Không thể tải danh sách khuyến mãi: {ex.Message}";
-            Snackbar.Add(errorMessage, Severity.Error);
+            Snackbar.Add(errorMessage, Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
         }
         finally
         {
@@ -208,22 +223,52 @@
 
     private async Task OpenFilterDialog()
     {
+        var parameters = new DialogParameters<PromotionFilterDialog>
+        {
+            { x => x.CurrentFilters, currentFilters }
+        };
+
         var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<PromotionFilterDialog>("Lọc khuyến mãi", options);
+        var dialog = await DialogService.ShowAsync<PromotionFilterDialog>("Lọc khuyến mãi", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data != null)
+        if (!result.Canceled && result.Data is PromotionFilterDto filter)
         {
-            Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
-            // TODO: Apply filter logic
+            Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+            currentFilters = filter;
+            ApplyFilters();
         }
+    }
+
+    private void ApplyFilters()
+    {
+        Console.WriteLine("Hello WOrld!");
+        promotions = allPromotions;
+
+        if (!string.IsNullOrEmpty(currentFilters.Status))
+        {
+            promotions = promotions.Where(p => p.Status == currentFilters.Status).ToList();
+        }
+
+        if (!string.IsNullOrEmpty(currentFilters.DiscountType))
+        {
+            promotions = promotions.Where(p => p.DiscountType == currentFilters.DiscountType).ToList();
+        }
+        promotions = promotions.Where(p =>
+                (currentFilters.StartDate == null || p.StartDate >= currentFilters.StartDate) &&
+                (currentFilters.EndDate == null || p.EndDate <= currentFilters.EndDate)).ToList();
     }
 
     private async Task HandleToggleActive(Promotion promotion)
     {
         var result = await DialogService.ShowMessageBox(
             "Xác nhận " + (promotion.Status == "active" ? "xóa" : "khôi phục"),
-            "Bạn có chắc muốn " + (promotion.Status == "active" ? "xóa" : "khôi phục") + $" mã khuyến mãi '{promotion.PromoCode}'?",
+            "Bạn có chắc muốn " + (promotion.Status == "active" ? "xóa" : "khôi phục") + $" khuyến mãi '{promotion.PromoCode}'?",
             yesText: promotion.Status == "active" ? "Xóa" : "Khôi phục",
             cancelText: "Hủy"
         );
@@ -235,19 +280,33 @@
                 var response = await Http.DeleteAsync($"api/promotion/{promotion.PromoId}");
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add("Đã " + (promotion.Status == "active" ? "xóa" : "khôi phục") + $" mã khuyến mãi '{promotion.PromoCode}'!", Severity.Success);
+                    Snackbar.Add("Đã " + (promotion.Status == "active" ? "xóa" : "khôi phục") + $" khuyến mãi '{promotion.PromoCode}'!", Severity.Success, options =>
+                    {
+                        options.ShowTransitionDuration = 500;
+                        options.HideTransitionDuration = 400;
+                        options.VisibleStateDuration = 900;
+                    });
                     await LoadPromotions();
                 }
                 else
                 {
-                    Snackbar.Add("Không thể " + (promotion.Status == "active" ? "xóa" : "khôi phục") + " mã khuyến mãi!", Severity.Error);
+                    Snackbar.Add("Không thể " + (promotion.Status == "active" ? "xóa" : "khôi phục") + " khuyến mãi!", Severity.Error, options =>
+                    {
+                        options.ShowTransitionDuration = 500;
+                        options.HideTransitionDuration = 400;
+                        options.VisibleStateDuration = 900;
+                    });
                 }
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+                Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
             }
         }
     }
-
 }

@@ -37,7 +37,7 @@ public class PromotionController : Controller
                 p.Status.ToLower() == "active" &&
                 p.StartDate <= now &&
                 p.EndDate >= now &&
-                (p.UsageLimit == null || p.UsageLimit == 0 || (p.UsedCount ?? 0) < p.UsageLimit)
+                (p.UsageLimit == null || p.UsageLimit == -1 || (p.UsedCount ?? 0) < p.UsageLimit)
             );
         }
 

@@ -1,5 +1,6 @@
 ﻿@using StoreManagement.Shared.DTOs
 @using StoreManagement.Shared.Models
+@inject ISnackbar Snackbar
 
 <MudDialog>
     <TitleContent>
@@ -8,42 +9,41 @@
             Bộ lọc khuyến mãi
         </MudText>
     </TitleContent>
+
     <DialogContent>
         <MudGrid Spacing="3">
             <MudItem xs="12">
-                <MudSelect T="string" 
-                           @bind-Value="status" 
+                <MudSelect @bind-Value="filters.Status"
                            Label="Trạng thái"
-                           Clearable="true"
-                           Placeholder="Tất cả">
-                    <MudSelectItem T="string" Value="@("active")">Hoạt động</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("inactive")">Ngưng</MudSelectItem>
+                           Placeholder="Tất cả"
+                           Clearable=true>
+                    <MudSelectItem Value="@("active")">Hoạt động</MudSelectItem>
+                    <MudSelectItem Value="@("inactive")">Ngừng</MudSelectItem>
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12">
-                <MudSelect T="string" 
-                           @bind-Value="discountType" 
+                <MudSelect @bind-Value="filters.DiscountType"
                            Label="Loại giảm giá"
-                           Clearable="true"
-                           Placeholder="Tất cả">
-                    <MudSelectItem T="string" Value="@("percent")">Phần trăm</MudSelectItem>
-                    <MudSelectItem T="string" Value="@("fixed")">Số tiền cố định</MudSelectItem>
+                           Placeholder="Tất cả"
+                           Clearable=true>
+                    <MudSelectItem Value="@("percent")">Phần trăm</MudSelectItem>
+                    <MudSelectItem Value="@("fixed")">Số tiền cố định</MudSelectItem>
                 </MudSelect>
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="startDate" 
-                               Label="Từ ngày bắt đầu"
-                               Clearable="true"
-                               Placeholder="dd/MM/yyyy" />
+                <MudDatePicker @bind-Date="filters.StartDate"
+                               Label="Ngày bắt đầu"
+                               Placeholder="dd/MM/yyyy"
+                               Clearable=true />
             </MudItem>
 
             <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="endDate" 
-                               Label="Đến ngày kết thúc"
-                               Clearable="true"
-                               Placeholder="dd/MM/yyyy" />
+                <MudDatePicker @bind-Date="filters.EndDate"
+                               Label="Ngày kết thúc"
+                               Placeholder="dd/MM/yyyy"
+                               Clearable=true />
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -58,30 +58,42 @@
     [CascadingParameter]
     MudDialogInstance MudDialog { get; set; } = null!;
 
-    private string? status;
-    private string? discountType;
-    private DateTime? startDate;
-    private DateTime? endDate;
+    [Parameter]
+    public PromotionFilterDto CurrentFilters { get; set; } = new();
 
-    private void Clear()
+    private PromotionFilterDto filters = new();
+
+    protected override void OnInitialized()
     {
-        status = null;
-        discountType = null;
-        startDate = null;
-        endDate = null;
+        filters = new PromotionFilterDto
+        {
+            Status = CurrentFilters.Status ?? "",
+            DiscountType = CurrentFilters.DiscountType ?? "",
+            StartDate = CurrentFilters.StartDate ?? null,
+            EndDate = CurrentFilters.EndDate ?? null
+        };
     }
-
-    private void Cancel() => MudDialog.Cancel();
 
     private void Apply()
     {
-        var filter = new PromotionFilterDto
+        if (filters.StartDate > filters.EndDate)
         {
-            Status = status,
-            DiscountType = discountType,
-            StartDate = startDate,
-            EndDate = endDate
-        };
-        MudDialog.Close(DialogResult.Ok(filter));
+            Snackbar.Add("Ngày bắt đầu phải nhỏ hơn ngày kết thúc!", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(filters));
     }
+
+
+    private void Clear()
+    {
+        filters = new PromotionFilterDto();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
 }

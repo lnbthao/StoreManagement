@@ -51,6 +51,7 @@
                         <MudNumericField @bind-Value="promotion.DiscountValue"
                                          Label="Giá trị giảm"
                                          Required="true"
+                                         Format="N0"
                                          Variant="Variant.Outlined"
                                          Min="0" />
                     </MudItem>
@@ -58,6 +59,7 @@
                     <MudItem xs="12" sm="6">
                         <MudNumericField @bind-Value="promotion.MinOrderAmount"
                                          Label="Giá trị đơn hàng tối thiểu"
+                                         Format="N0"
                                          Variant="Variant.Outlined"
                                          Min="0" />
                     </MudItem>
@@ -78,7 +80,7 @@
                         <MudNumericField @bind-Value="promotion.UsageLimit"
                                          Label="Giới hạn sử dụng"
                                          Variant="Variant.Outlined"
-                                         Min="0" />
+                                         Min="-1" />
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
@@ -150,13 +152,23 @@
             }
             else
             {
-                Snackbar.Add("Không tìm thấy khuyến mãi", Severity.Error);
+                Snackbar.Add("Không tìm thấy khuyến mãi", Severity.Error, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
                 Navigation.NavigateTo("/admin/promotion");
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Lỗi khi tải dữ liệu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Lỗi khi tải dữ liệu: {ex.Message}", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
             Navigation.NavigateTo("/admin/promotion");
         }
         finally
@@ -190,18 +202,33 @@
             {
                 Snackbar.Add(
                     Id.HasValue ? "Cập nhật khuyến mãi thành công" : "Thêm khuyến mãi thành công",
-                    Severity.Success
+                    Severity.Success, options =>
+                    {
+                        options.ShowTransitionDuration = 500;
+                        options.HideTransitionDuration = 400;
+                        options.VisibleStateDuration = 900;
+                    }
                 );
                 Navigation.NavigateTo("/admin/promotion");
             }
             else
             {
-                Snackbar.Add("Không thể lưu khuyến mãi", Severity.Error);
+                Snackbar.Add("Không thể lưu khuyến mãi", Severity.Error, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Lỗi khi lưu: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Lỗi khi lưu: {ex.Message}", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
         }
         finally
         {

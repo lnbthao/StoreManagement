@@ -3,6 +3,7 @@
 @layout StaffLayout
 @using StoreManagement.Shared.ViewModels
 @using StoreManagement.Shared.Helpers
+@using CategoryModel = StoreManagement.Shared.Models.Category
 @using ProductModel = StoreManagement.Shared.Models.Product
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -25,6 +26,14 @@
                          FullWidth="true" />
         </MudPaper>
 
+        <MudTabs style="margin-bottom: 16px" Color="Color.Primary" Elevation="2">
+            <MudTabPanel Text="Tất cả" @onclick="() => FilterProducts()" />
+            @foreach (var category in categoryList)
+            {
+                <MudTabPanel Text="@category.CategoryName" @onclick="() => FilterProducts(category.CategoryName)" />
+            }
+        </MudTabs>
+
         @if (isLoadingProducts)
         {
             <MudProgressLinear Indeterminate="true" />
@@ -35,8 +44,6 @@
                 Không có sản phẩm!
             </MudText>
         }
-
-
         else
         {
             <MudGrid>
@@ -44,15 +51,18 @@
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
                         <MudCard Class="cursor-pointer" @onclick="@(() => AddToCart(product))">
-                            @if (!string.IsNullOrEmpty(product.ImageUrl))
+                            @if (string.IsNullOrEmpty(product.ImageUrl))
                             {
-                                <MudCardMedia Image="@($"https://localhost:7064{product.ImageUrl}")" 
-                                             Height="150" 
-                                             Style="background-size: contain" />
+                                <MudCardMedia Image="https://localhost:7064/images/products/error.png" Height="150" Style="background-size: contain" />
                             }
                             else
                             {
-                                <MudCardMedia Image="/images/no-image.png" Height="150" Style="object-fit: cover;" />
+                                <img
+                                    src="@($"https://localhost:7064{product.ImageUrl}")"
+                                    alt="@product.ProductName"
+                                    style="height: 150px; object-fit: contain"
+                                    onerror="this.src = 'https://localhost:7064/images/products/error.png'"
+                                />
                             }
                             <MudCardContent Class="pa-2">
                                 <MudText Typo="Typo.body2" Class="font-weight-bold">@product.ProductName</MudText>
@@ -82,7 +92,7 @@
 
     @* Cart & Checkout *@
     <MudItem xs="12" md="4">
-        <MudPaper Elevation="2" Class="pa-4" Style="position: sticky; top: 20px;">
+        <MudPaper Elevation="2" Class="pa-4" Style="position: sticky; top: 64px;">
             <MudText Typo="Typo.h6" Class="mb-4">
                 <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" /> Giỏ hàng (@checkoutVM.CartItems.Count)
             </MudText>
@@ -147,7 +157,7 @@
                           Class="mt-2"
                           Size="Size.Medium"
                           StartIcon="@Icons.Material.Filled.Clear"
-                          OnClick="ClearCart">
+                          OnClick="()=>ClearCart()">
                     Xóa giỏ hàng
                 </MudButton>
             }
@@ -166,13 +176,16 @@
 @code {
     private CheckoutViewModel checkoutVM = new();
     private string searchProduct = string.Empty;
+    private string filterCategory = string.Empty;
     private List<ProductModel> allProducts = new();
     private List<ProductModel> displayProducts = new();
     private bool isLoadingProducts = false;
+    private List<CategoryModel> categoryList = new();
 
     protected override async Task OnInitializedAsync()
     {
         await LoadProducts();
+        await LoadCategories();
     }
 
     private async Task LoadProducts()
@@ -185,7 +198,12 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Lỗi tải sản phẩm: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Lỗi tải sản phẩm: {ex.Message}", Severity.Error, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
         }
         finally
         {
@@ -193,45 +211,75 @@
         }
     }
 
+    private async Task LoadCategories()
+    {
+        categoryList = await Http.GetFromJsonAsync<List<CategoryModel>>("api/category") ?? new();
+    }
+
     private async Task SearchProducts()
     {
         await Task.CompletedTask;
-        
-        if (string.IsNullOrWhiteSpace(searchProduct))
+
+        if (string.IsNullOrEmpty(searchProduct.Trim()))
         {
-            displayProducts = allProducts.Where(p => p.IsActive).ToList();
+            displayProducts = allProducts.Where(p => p.IsActive && (
+                string.IsNullOrEmpty(filterCategory) || 
+                p.CategoryName == filterCategory
+            )).ToList();
         }
         else
         {
             var search = searchProduct.ToLower();
             displayProducts = allProducts
-                .Where(p => p.IsActive && 
+                .Where(p => p.IsActive &&
+                    (string.IsNullOrEmpty(filterCategory) ||  p.CategoryName == filterCategory) &&
                     (p.ProductName.ToLower().Contains(search) || 
-                     (p.Barcode != null && p.Barcode.Contains(search))))
+                    (p.Barcode != null && p.Barcode.Contains(search))))
                 .ToList();
         }
+    }
+
+    private async Task FilterProducts(string type = "")
+    {
+        filterCategory = type;
+        await SearchProducts();
     }
 
     private void AddToCart(ProductModel product)
     {
         if (product.StockQuantity <= 0)
         {
-            Snackbar.Add("Sản phẩm hết hàng", Severity.Warning);
+            Snackbar.Add("Sản phẩm hết hàng!", Severity.Warning, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
             return;
         }
 
         var existingItem = checkoutVM.CartItems.FirstOrDefault(x => x.ProductId == product.ProductId);
-        
+
         if (existingItem != null)
         {
             if (existingItem.Quantity < product.StockQuantity)
             {
                 existingItem.Quantity++;
-                Snackbar.Add($"Đã tăng số lượng {product.ProductName}", Severity.Success);
+                Snackbar.Add($"Đã tăng số lượng {product.ProductName}!", Severity.Success, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
             }
             else
             {
-                Snackbar.Add("Không đủ hàng trong kho", Severity.Warning);
+                Snackbar.Add("Không đủ hàng trong kho!", Severity.Warning, options =>
+                {
+                    options.ShowTransitionDuration = 500;
+                    options.HideTransitionDuration = 400;
+                    options.VisibleStateDuration = 900;
+                });
                 return;
             }
         }
@@ -244,7 +292,12 @@
                 UnitPrice = product.Price,
                 Quantity = 1
             });
-            Snackbar.Add($"Đã thêm {product.ProductName}", Severity.Success);
+            Snackbar.Add($"Đã thêm {product.ProductName}!", Severity.Success, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
         }
 
         CalculateTotal();
@@ -260,7 +313,12 @@
         }
         else
         {
-            Snackbar.Add("Không đủ hàng trong kho", Severity.Warning);
+            Snackbar.Add("Không đủ hàng trong kho!", Severity.Warning, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
         }
     }
 
@@ -281,14 +339,27 @@
     {
         checkoutVM.CartItems.Remove(item);
         CalculateTotal();
-        Snackbar.Add("Đã xóa khỏi giỏ hàng", Severity.Info);
+        Snackbar.Add("Đã xóa khỏi giỏ hàng!", Severity.Info, options =>
+        {
+            options.ShowTransitionDuration = 500;
+            options.HideTransitionDuration = 400;
+            options.VisibleStateDuration = 900;
+        });
     }
 
-    private void ClearCart()
+    private void ClearCart(bool isCheckout = false)
     {
         checkoutVM.CartItems.Clear();
         CalculateTotal();
-        Snackbar.Add("Đã xóa giỏ hàng", Severity.Info);
+        if (!isCheckout)
+        {
+            Snackbar.Add("Đã xóa giỏ hàng!", Severity.Info, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
+        }
     }
 
     private void CalculateTotal()
@@ -311,8 +382,13 @@
 
         if (!result!.Canceled && result.Data is bool success && success)
         {
-            ClearCart();
-            Snackbar.Add("Thanh toán thành công!", Severity.Success);
+            ClearCart(true);
+            Snackbar.Add("Thanh toán thành công!", Severity.Success, options =>
+            {
+                options.ShowTransitionDuration = 500;
+                options.HideTransitionDuration = 400;
+                options.VisibleStateDuration = 900;
+            });
         }
     }
 }
