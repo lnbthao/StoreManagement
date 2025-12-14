@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using StoreManagement.Server.Models;
 
 namespace StoreManagement.Server.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
+[Authorize]
 public class SupplierController : Controller
 {
     private readonly StoreManagementContext _context;
@@ -50,6 +52,7 @@ public class SupplierController : Controller
 
     // POST: /api/supplier
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> AddSupplier(Supplier s)
     {
         s.IsActive ??= true; // mặc định true nếu null
@@ -62,6 +65,7 @@ public class SupplierController : Controller
 
     // PUT: /api/supplier/{id}
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> UpdateSupplier(int id, [FromBody] Supplier s)
     {
         var existing = await _context.Suppliers.FindAsync(id);
@@ -80,6 +84,7 @@ public class SupplierController : Controller
 
     // DELETE: /api/supplier/{id} → xóa mềm
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteSupplier(int id)
     {
         var existing = await _context.Suppliers.FindAsync(id);
@@ -93,6 +98,7 @@ public class SupplierController : Controller
 
     // PUT: api/Supplier/{id}/restore → phục hồi
     [HttpPut("{id:int}/restore")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> RestoreSupplier(int id)
     {
         var supplier = await _context.Suppliers.FindAsync(id);

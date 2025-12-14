@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using StoreManagement.Server.Models;
 
 namespace StoreManagement.Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class ProductController : ControllerBase
     {
         private readonly StoreManagementContext _context;
@@ -111,6 +113,7 @@ namespace StoreManagement.Server.Controllers
 
         // POST: api/Product
         [HttpPost]
+        [Authorize(Roles = "admin")]
         public async Task<ActionResult<object>> CreateProduct([FromBody] Product product)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -126,6 +129,7 @@ namespace StoreManagement.Server.Controllers
 
         // PUT: api/Product/5
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductDto dto)
         {
             if (id != dto.ProductId) return BadRequest("ID không khớp");
@@ -147,6 +151,7 @@ namespace StoreManagement.Server.Controllers
 
         // THAY THẾ [HttpDelete("{id:int}")]
         [HttpPut("{id:int}/delete")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);
@@ -187,6 +192,7 @@ namespace StoreManagement.Server.Controllers
 
         // POST: api/Product/import-inventory
         [HttpPost("import-inventory")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> ImportInventory([FromBody] ImportInventoryRequest request)
         {
             if (request.Quantity <= 0)
@@ -227,6 +233,7 @@ namespace StoreManagement.Server.Controllers
 
         // PUT: api/Product/5/restore
         [HttpPut("{id:int}/restore")]
+        [Authorize(Roles = "admin")]
         public async Task<IActionResult> RestoreProduct(int id)
         {
             var product = await _context.Products.FindAsync(id);

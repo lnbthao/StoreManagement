@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using StoreManagement.Server.Models;
 
 namespace StoreManagement.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "admin")]
     public class StatisticsController : ControllerBase
     {
         private readonly StoreManagementContext _context;

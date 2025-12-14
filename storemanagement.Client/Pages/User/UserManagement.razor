@@ -1,4 +1,5 @@
 ﻿@page "/admin/user"
+@attribute [Authorize(Roles = "admin")]
 @using StoreManagement.Shared.Models
 @using StoreManagement.Shared.Enums
 @inject HttpClient Http

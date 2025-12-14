@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using StoreManagement.Server.Models;
 
 namespace StoreManagement.Server.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
+[Authorize]
 public class CategoryController : Controller
 {
     private readonly StoreManagementContext _context;
@@ -30,6 +32,7 @@ public class CategoryController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> AddCategory(Category c)
     {
         // Log dữ liệu nhận được
@@ -49,6 +52,7 @@ public class CategoryController : Controller
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category c)
     {
         var existing = await _context.Categories.FindAsync(id);
@@ -62,6 +66,7 @@ public class CategoryController : Controller
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
         var existing = await _context.Categories.FindAsync(id);
@@ -75,6 +80,7 @@ public class CategoryController : Controller
 
     // PUT: api/Category/{id}/restore -> phục hồi
     [HttpPut("{id:int}/restore")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> RestoreCategory(int id)
     {
         var Category = await _context.Categories.FindAsync(id);

@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 using StoreManagement.Server.Models;
 
 namespace StoreManagement.Server.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]
+[Authorize]
 public class PromotionController : Controller
 {
     private readonly ILogger<PromotionController> _logger;
@@ -122,6 +124,7 @@ public class PromotionController : Controller
 
     // POST - thêm mới
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> AddPromotion(Promotion promo)
     {
         _dbContext.Promotions.Add(promo);
@@ -131,6 +134,7 @@ public class PromotionController : Controller
 
     // PUT - cập nhật
     [HttpPut("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> UpdatePromotion(Promotion promo, int id)
     {
         if (promo.PromoId != id)
@@ -143,6 +147,7 @@ public class PromotionController : Controller
 
     // DELETE - bật/tắt trạng thái (soft delete)
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> DeletePromotion(int id)
     {
         var promo = await GetPromotionById(id);

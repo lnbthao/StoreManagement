@@ -1,4 +1,5 @@
 ﻿@page "/admin/customer"
+@attribute [Authorize(Roles = "admin")]
 @using StoreManagement.Shared.Models
 @using StoreManagement.Shared.DTOs
 @using StoreManagement.Shared.Helpers

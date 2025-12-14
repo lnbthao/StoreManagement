@@ -84,6 +84,22 @@
         showPassword = !showPassword;
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            var user = await AuthService.GetCurrentUserAsync();
+            if (user?.Role == "admin")
+            {
+                Navigation.NavigateTo("/admin", true);
+            }
+            else
+            {
+                Navigation.NavigateTo("/staff", true);
+            }
+        }
+    }
+
     private async Task HandleLogin()
     {
         if (form == null) return;
@@ -102,7 +118,6 @@
             {
                 Snackbar.Add("Đăng nhập thành công!", Severity.Success);
 
-                // Navigate based on role
                 if (result.User.Role == "admin")
                 {
                     Navigation.NavigateTo("/admin", true);
