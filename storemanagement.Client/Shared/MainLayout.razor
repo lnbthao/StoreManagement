@@ -3,7 +3,11 @@
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
 
+<<<<<<< HEAD
 <MudThemeProvider Theme="@_theme" @bind-IsDarkMode="_isDarkMode" />
+=======
+<MudThemeProvider />
+>>>>>>> origin/Cuoiki-dev/thao
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -23,7 +27,11 @@
         {
             <MudProgressCircular Size="Size.Small" Indeterminate="true" />
         }
+<<<<<<< HEAD
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.Brightness7 : Icons.Material.Filled.Brightness4)" Color="Color.Inherit" OnClick="ToggleTheme" Title="@(_isDarkMode ? "Chế độ sáng" : "Chế độ tối")" />
+=======
+        <MudIconButton Icon="@Icons.Material.Filled.Brightness4" Color="Color.Inherit" Title="Chế độ tối" />
+>>>>>>> origin/Cuoiki-dev/thao
         <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="HandleLogout" Title="Đăng xuất" />
     </MudAppBar>
     
@@ -51,6 +59,7 @@
     private bool drawerOpen = true;
     private StoreManagement.Shared.DTOs.UserInfoDto? currentUser;
     private bool isLoaded = false;
+<<<<<<< HEAD
     private bool _isDarkMode = false;
 
     private MudTheme _theme = new MudTheme()
@@ -86,6 +95,8 @@
             TextSecondary = "#B0B0B0"
         }
     };
+=======
+>>>>>>> origin/Cuoiki-dev/thao
 
     protected override async Task OnInitializedAsync()
     {
@@ -103,11 +114,14 @@
         }
     }
 
+<<<<<<< HEAD
     private void ToggleTheme()
     {
         _isDarkMode = !_isDarkMode;
     }
 
+=======
+>>>>>>> origin/Cuoiki-dev/thao
     private async Task HandleLogout()
     {
         await AuthService.LogoutAsync();

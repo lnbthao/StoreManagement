@@ -70,7 +70,11 @@
                     <MudTh Style="text-align:center">Bắt đầu</MudTh>
                     <MudTh Style="text-align:center">Kết thúc</MudTh>
                     <MudTh Style="text-align:center">Trạng thái</MudTh>
+<<<<<<< HEAD
                     <MudTh Style="text-align:center">Hành động</MudTh>
+=======
+                    <MudTh Style="text-align:center; width: 120px">Hành động</MudTh>
+>>>>>>> origin/Cuoiki-dev/thao
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>@context.PromoCode</MudTd>
@@ -108,6 +112,7 @@
                         }
                     </MudTd>
                     <MudTd Style="text-align:center">
+<<<<<<< HEAD
                         <MudTooltip Text="Xem">
                             <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
                                          Color="Color.Info" 
@@ -126,6 +131,38 @@
                                          Size="Size.Small"
                                          OnClick="@(() => DeletePromotion(context))" />
                         </MudTooltip>
+=======
+                        @if (context.Status == "active")
+                        {
+                            <MudTooltip Text="Xem">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                               Color="Color.Info"
+                                               Size="Size.Small"
+                                               OnClick="@(() => OpenViewDialog(context))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Sửa">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                               Color="Color.Primary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => Navigation.NavigateTo($"/admin/promotion/edit/{context.PromoId}"))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Xóa">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => HandleToggleActive(context))" />
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Khôi phục">
+                                <MudIconButton Icon="@Icons.Material.Filled.Restore"
+                                               Color="Color.Success"
+                                               Size="Size.Small"
+                                               OnClick="@(() => HandleToggleActive(context))" />
+                            </MudTooltip>
+                        }
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -207,12 +244,21 @@
         }
     }
 
+<<<<<<< HEAD
     private async Task DeletePromotion(Promotion promotion)
     {
         var result = await DialogService.ShowMessageBox(
             "Xác nhận xóa",
             $"Bạn có chắc muốn xóa khuyến mãi '{promotion.PromoCode}'?",
             yesText: "Xóa",
+=======
+    private async Task HandleToggleActive(Promotion promotion)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Xác nhận " + (promotion.Status == "active" ? "xóa" : "khôi phục"),
+            "Bạn có chắc muốn " + (promotion.Status == "active" ? "xóa" : "khôi phục") + $" mã khuyến mãi '{promotion.PromoCode}'?",
+            yesText: promotion.Status == "active" ? "Xóa" : "Khôi phục",
+>>>>>>> origin/Cuoiki-dev/thao
             cancelText: "Hủy"
         );
 
@@ -223,18 +269,34 @@
                 var response = await Http.DeleteAsync($"api/promotion/{promotion.PromoId}");
                 if (response.IsSuccessStatusCode)
                 {
+<<<<<<< HEAD
                     Snackbar.Add($"Đã xóa khuyến mãi '{promotion.PromoCode}'", Severity.Success);
+=======
+                    Snackbar.Add("Đã " + (promotion.Status == "active" ? "xóa" : "khôi phục") + $" mã khuyến mãi '{promotion.PromoCode}'!", Severity.Success);
+>>>>>>> origin/Cuoiki-dev/thao
                     await LoadPromotions();
                 }
                 else
                 {
+<<<<<<< HEAD
                     Snackbar.Add("Không thể xóa khuyến mãi", Severity.Error);
+=======
+                    Snackbar.Add("Không thể " + (promotion.Status == "active" ? "xóa" : "khôi phục") + " mã khuyến mãi!", Severity.Error);
+>>>>>>> origin/Cuoiki-dev/thao
                 }
             }
             catch (Exception ex)
             {
+<<<<<<< HEAD
                 Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error);
             }
         }
     }
+=======
+                Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+>>>>>>> origin/Cuoiki-dev/thao
 }

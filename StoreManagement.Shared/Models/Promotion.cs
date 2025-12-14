@@ -12,7 +12,7 @@ public class Promotion
     public decimal DiscountValue { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public decimal? MinPurchase { get; set; }
+    public decimal? MinOrderAmount { get; set; }
     public int? UsageLimit { get; set; }
     public string? Status { get; set; } // "active" or "inactive"
 }

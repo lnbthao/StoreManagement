@@ -14,10 +14,17 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="6">
+<<<<<<< HEAD
                 <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined" Placeholder="Tất cả">
                     <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
                     <MudSelectItem Value="@("active")">Đang hoạt động</MudSelectItem>
                     <MudSelectItem Value="@("inactive")">Vô hiệu hóa</MudSelectItem>
+=======
+                <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("active")">Đang hoạt động</MudSelectItem>
+                    <MudSelectItem Value="@("inactive")">Vô hiệu hóa</MudSelectItem>
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+>>>>>>> origin/Cuoiki-dev/thao
                 </MudSelect>
             </MudItem>
         </MudGrid>

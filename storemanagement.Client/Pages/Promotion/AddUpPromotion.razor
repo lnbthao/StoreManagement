@@ -9,7 +9,11 @@
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
     <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+<<<<<<< HEAD
         @(Id.HasValue ? "SỬA KHUYẾN MãI" : "THÊM KHUYẾN MãI")
+=======
+        @(Id.HasValue ? "SỬA KHUYẾN MÃI" : "THÊM KHUYẾN MÃI")
+>>>>>>> origin/Cuoiki-dev/thao
     </MudText>
 
     <MudPaper Elevation="2" Class="pa-6">
@@ -36,7 +40,11 @@
                                    Variant="Variant.Outlined"
                                    Required="true">
                             <MudSelectItem Value="@("percent")">Phần trăm (%)</MudSelectItem>
+<<<<<<< HEAD
                             <MudSelectItem Value="@("amount")">Số tiền (VNĐ)</MudSelectItem>
+=======
+                            <MudSelectItem Value="@("fixed")">Số tiền (VNĐ)</MudSelectItem>
+>>>>>>> origin/Cuoiki-dev/thao
                         </MudSelect>
                     </MudItem>
 
@@ -56,7 +64,11 @@
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
+<<<<<<< HEAD
                         <MudNumericField @bind-Value="promotion.MinPurchase"
+=======
+                        <MudNumericField @bind-Value="promotion.MinOrderAmount"
+>>>>>>> origin/Cuoiki-dev/thao
                                          Label="Giá trị đơn hàng tối thiểu"
                                          Variant="Variant.Outlined"
                                          Min="0" />

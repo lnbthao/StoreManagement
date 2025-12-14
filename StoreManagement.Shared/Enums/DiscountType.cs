@@ -6,7 +6,7 @@ namespace StoreManagement.Shared.Enums;
 public enum DiscountType
 {
     Percent,
-    Amount
+    Fixed
 }
 
 /// <summary>
@@ -24,8 +24,8 @@ public static class DiscountTypeExtensions
         return type?.ToLower() switch
         {
             "percent" => DiscountType.Percent,
-            "amount" => DiscountType.Amount,
-            _ => DiscountType.Amount
+            "fixed" => DiscountType.Fixed,
+            _ => DiscountType.Fixed
         };
     }
 
@@ -34,7 +34,7 @@ public static class DiscountTypeExtensions
         return type switch
         {
             DiscountType.Percent => $"{value}%",
-            DiscountType.Amount => Helpers.FormatHelper.ToVNPrice(value),
+            DiscountType.Fixed => Helpers.FormatHelper.ToVNPrice(value),
             _ => value.ToString()
         };
     }

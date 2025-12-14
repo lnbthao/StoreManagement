@@ -15,7 +15,11 @@
         <MudSpacer />
         @if (currentUser != null)
         {
+<<<<<<< HEAD
             <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Surface" Variant="Variant.Text">
+=======
+            <MudChip T="string" Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Variant="Variant.Filled">
+>>>>>>> origin/Cuoiki-dev/thao
                 @(string.IsNullOrEmpty(currentUser.FullName) ? currentUser.Username : currentUser.FullName) (@currentUser.Role)
             </MudChip>
         }

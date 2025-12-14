@@ -30,28 +30,58 @@
                                       Variant="Variant.Outlined" />
                     </MudItem>
 
+<<<<<<< HEAD
                     <MudItem xs="12">
                         <MudTextField @bind-Value="supplier.ContactName"
                                       Label="Người liên hệ"
                                       Variant="Variant.Outlined" />
                     </MudItem>
+=======
+                    @* <MudItem xs="12">
+                        <MudTextField @bind-Value="supplier.ContactName"
+                                      Label="Người liên hệ"
+                                      required="true"
+                                      RequiredError="Vui lòng nhập tên nhà cung cấp"
+                                      Variant="Variant.Outlined" />
+                    </MudItem> *@
+>>>>>>> origin/Cuoiki-dev/thao
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="supplier.Phone"
                                       Label="Số điện thoại"
+<<<<<<< HEAD
                                       Variant="Variant.Outlined" />
+=======
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập số điện thoại"
+                                      Variant="Variant.Outlined"
+                                      Validation="@(ValidatePhone)" />
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="supplier.Email"
                                       Label="Email"
+<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       InputType="InputType.Email" />
+=======
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập Email"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Email"
+                                      Validation="@(ValidateEmail)" />
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12">
                         <MudTextField @bind-Value="supplier.Address"
                                       Label="Địa chỉ"
+<<<<<<< HEAD
+=======
+                                      Required="true"
+                                      RequiredError="Vui lòng nhập địa chỉ"
+>>>>>>> origin/Cuoiki-dev/thao
                                       Lines="3"
                                       Variant="Variant.Outlined" />
                     </MudItem>
@@ -98,6 +128,36 @@
     private bool isSaving = false;
     private Supplier supplier = new() { IsActive = true };
 
+<<<<<<< HEAD
+=======
+    private string ValidateEmail(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Vui lòng nhập email";
+
+        // Regex kiểm tra email chuẩn
+        if (!System.Text.RegularExpressions.Regex.IsMatch(
+                value,
+                @"^[\w\.-]+@[\w\.-]+\.\w{2,}$"))
+        {
+            return "Email không hợp lệ";
+        }
+
+        return null;
+    }
+    private string ValidatePhone(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Vui lòng nhập số điện thoại";
+
+        // Bắt đầu bằng 09 và có tổng cộng 10 số
+        if (!System.Text.RegularExpressions.Regex.IsMatch(value, @"^09\d{8}$"))
+            return "Số điện thoại phải bắt đầu bằng 09 và gồm 10 số";
+
+        return null;
+    }
+
+>>>>>>> origin/Cuoiki-dev/thao
     protected override async Task OnInitializedAsync()
     {
         if (Id.HasValue)

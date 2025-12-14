@@ -218,4 +218,3 @@ public class CustomerController : Controller
         return await _db.SaveChangesAsync() > 0 ? Ok() : StatusCode(400);
     }
 }
-

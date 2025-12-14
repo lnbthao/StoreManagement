@@ -41,6 +41,7 @@ public class AuthService : IAuthService
 
                     return result;
                 }
+<<<<<<< HEAD
                 
                 // Login failed but we have a message from backend
                 return result;
@@ -52,6 +53,15 @@ public class AuthService : IAuthService
         catch
         {
             return new LoginResponseDto { Success = false, Message = "Không thể kết nối đến máy chủ" };
+=======
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+>>>>>>> origin/Cuoiki-dev/thao
         }
     }
 

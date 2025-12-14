@@ -90,6 +90,7 @@
                                          Size="Size.Small"
                                          OnClick="@(() => Navigation.NavigateTo($"/admin/customer/edit/{context.CustomerId}"))" />
                         </MudTooltip>
+<<<<<<< HEAD
                         @if (context.IsActive)
                         {
                             <MudTooltip Text="Xóa">
@@ -108,6 +109,14 @@
                                              OnClick="@(() => DeleteCustomer(context))" />
                             </MudTooltip>
                         }
+=======
+                        <MudTooltip Text="Xóa">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                         Color="Color.Error" 
+                                         Size="Size.Small"
+                                         OnClick="@(() => DeleteCustomer(context))" />
+                        </MudTooltip>
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -124,7 +133,10 @@
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
+<<<<<<< HEAD
     private CustomerFilterDto currentFilters = new() { Status = "active" };
+=======
+>>>>>>> origin/Cuoiki-dev/thao
 
     private async Task OpenViewDialog(Customer customer)
     {
@@ -139,16 +151,25 @@
     {
         var parameters = new DialogParameters<CustomerFilterDialog>
         {
+<<<<<<< HEAD
             { x => x.CurrentFilters, currentFilters }
+=======
+            { x => x.CurrentFilters, new CustomerFilterDto() }
+>>>>>>> origin/Cuoiki-dev/thao
         };
         var dialog = await DialogService.ShowAsync<CustomerFilterDialog>("Lọc khách hàng", parameters);
         var result = await dialog.Result;
         
         if (!result.Canceled && result.Data is CustomerFilterDto filters)
         {
+<<<<<<< HEAD
             currentFilters = filters;
             await LoadCustomers();
             Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
+=======
+            // TODO: Apply filters to customer list
+            Snackbar.Add("Chức năng lọc sẽ được cập nhật sau", Severity.Info);
+>>>>>>> origin/Cuoiki-dev/thao
         }
     }
 
@@ -179,6 +200,7 @@
         {
             isLoading = true;
             errorMessage = "";
+<<<<<<< HEAD
             
             // Build query string from filters
             var queryParams = new List<string>();
@@ -210,6 +232,10 @@
             // Client-side filter for inactive only
             if (currentFilters.Status == "inactive")
                 customers = customers.Where(c => !c.IsActive).ToList();
+=======
+            var response = await Http.GetFromJsonAsync<List<Customer>>("api/customer");
+            customers = response ?? new List<Customer>();
+>>>>>>> origin/Cuoiki-dev/thao
         }
         catch (Exception ex)
         {
@@ -224,11 +250,18 @@
 
     private async Task DeleteCustomer(Customer customer)
     {
+<<<<<<< HEAD
         var action = customer.IsActive ? "xóa" : "khôi phục";
         var result = await DialogService.ShowMessageBox(
             $"Xác nhận {action}",
             $"Bạn có chắc muốn {action} khách hàng '{customer.CustomerName}'?",
             yesText: action,
+=======
+        var result = await DialogService.ShowMessageBox(
+            "Xác nhận xóa",
+            $"Bạn có chắc muốn xóa khách hàng '{customer.CustomerName}'?",
+            yesText: "Xóa",
+>>>>>>> origin/Cuoiki-dev/thao
             cancelText: "Hủy"
         );
 
@@ -239,20 +272,35 @@
                 var response = await Http.DeleteAsync($"api/customer/{customer.CustomerId}");
                 if (response.IsSuccessStatusCode)
                 {
+<<<<<<< HEAD
                     Snackbar.Add($"Đã {action} khách hàng '{customer.CustomerName}' thành công", Severity.Success);
+=======
+                    Snackbar.Add($"Đã xóa khách hàng '{customer.CustomerName}'", Severity.Success);
+>>>>>>> origin/Cuoiki-dev/thao
                     await LoadCustomers();
                 }
                 else
                 {
+<<<<<<< HEAD
                     var errorContent = await response.Content.ReadAsStringAsync();
                     Snackbar.Add($"Lỗi {action}: {(string.IsNullOrEmpty(errorContent) ? response.ReasonPhrase : errorContent)}", Severity.Error);
+=======
+                    Snackbar.Add("Không thể xóa khách hàng", Severity.Error);
+>>>>>>> origin/Cuoiki-dev/thao
                 }
             }
             catch (Exception ex)
             {
+<<<<<<< HEAD
                 Snackbar.Add($"Lỗi khi {action}: {ex.Message}", Severity.Error);
+=======
+                Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error);
+>>>>>>> origin/Cuoiki-dev/thao
             }
         }
     }
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/Cuoiki-dev/thao

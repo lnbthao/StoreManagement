@@ -24,8 +24,12 @@
                          Adornment="Adornment.Start"
                          AdornmentIcon="@Icons.Material.Filled.Person"
                          Class="mb-4"
+<<<<<<< HEAD
                          Disabled="isLoading"
                          Immediate="true" />
+=======
+                         Disabled="isLoading" />
+>>>>>>> origin/Cuoiki-dev/thao
 
             <MudTextField @bind-Value="loginModel.Password"
                          Label="Mật khẩu"
@@ -37,9 +41,13 @@
                          AdornmentIcon="@passwordIcon"
                          OnAdornmentClick="TogglePasswordVisibility"
                          Class="mb-6"
+<<<<<<< HEAD
                          Disabled="isLoading"
                          Immediate="true"
                          OnKeyDown="@(async (e) => { if (e.Key == "Enter") await HandleLogin(); })" />
+=======
+                         Disabled="isLoading" />
+>>>>>>> origin/Cuoiki-dev/thao
 
             <MudButton Variant="Variant.Filled"
                       Color="Color.Primary"

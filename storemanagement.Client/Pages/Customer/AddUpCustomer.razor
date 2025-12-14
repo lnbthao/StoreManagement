@@ -27,35 +27,51 @@
                                       Label="Tên khách hàng"
                                       Required="true"
                                       RequiredError="Vui lòng nhập tên khách hàng"
+<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       Immediate="true" />
+=======
+                                      Variant="Variant.Outlined" />
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="customer.Phone"
                                       Label="Số điện thoại"
+<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       Immediate="true"
                                       Required="true"
                                       RequiredError="Vui lòng nhập số điện thoại"
                                       Validation="@(new Func<string, string>(ValidatePhone))" />
+=======
+                                      Variant="Variant.Outlined" />
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12" sm="6">
                         <MudTextField @bind-Value="customer.Email"
                                       Label="Email"
                                       Variant="Variant.Outlined"
+<<<<<<< HEAD
                                       InputType="InputType.Email"
                                       Immediate="true"
                                       Validation="@(new Func<string, string>(ValidateEmail))" />
+=======
+                                      InputType="InputType.Email" />
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12">
                         <MudTextField @bind-Value="customer.Address"
                                       Label="Địa chỉ"
                                       Lines="3"
+<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       Immediate="true" />
+=======
+                                      Variant="Variant.Outlined" />
+>>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12" Class="d-flex gap-2 justify-end">
@@ -94,6 +110,7 @@
     private bool isSaving = false;
     private Customer customer = new() { CreatedAt = DateTime.Now, IsActive = true };
 
+<<<<<<< HEAD
     private string ValidatePhone(string phone)
     {
         if (string.IsNullOrWhiteSpace(phone)) return "Vui lòng nhập số điện thoại";
@@ -110,6 +127,8 @@
         return null;
     }
 
+=======
+>>>>>>> origin/Cuoiki-dev/thao
     protected override async Task OnInitializedAsync()
     {
         if (Id.HasValue)
@@ -175,6 +194,7 @@
             }
             else
             {
+<<<<<<< HEAD
                 var errorContent = await response.Content.ReadAsStringAsync();
                 var errorMsg = response.ReasonPhrase ?? "Lỗi không xác định";
                 try
@@ -185,6 +205,9 @@
                 }
                 catch { }
                 Snackbar.Add(errorMsg, Severity.Error);
+=======
+                Snackbar.Add("Không thể lưu khách hàng", Severity.Error);
+>>>>>>> origin/Cuoiki-dev/thao
             }
         }
         catch (Exception ex)
