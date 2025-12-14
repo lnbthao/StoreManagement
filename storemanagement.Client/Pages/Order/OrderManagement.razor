@@ -2,6 +2,8 @@
 @using StoreManagement.Shared.Models
 @using StoreManagement.Shared.Helpers
 @using StoreManagement.Shared.Enums
+@using StoreManagement.Shared.DTOs
+@using StoreManagement.Shared.ViewModels
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject IDialogService DialogService
@@ -91,7 +93,6 @@
 
 @code {
     private List<OrderDisplayDto> orders = new();
-    private List<OrderDisplayDto> allOrders = new();
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
@@ -118,11 +119,36 @@
         {
             isLoading = true;
             errorMessage = "";
-            var response = await Http.GetFromJsonAsync<List<OrderDto>>("api/order");
+            
+            // Build query string with filters
+            var queryParams = new List<string>();
+            
+            if (currentFilters.StartDate.HasValue)
+                queryParams.Add($"startDate={currentFilters.StartDate.Value:yyyy-MM-dd}");
+            
+            if (currentFilters.EndDate.HasValue)
+                queryParams.Add($"endDate={currentFilters.EndDate.Value:yyyy-MM-dd}");
+            
+            if (currentFilters.UserId.HasValue)
+                queryParams.Add($"userId={currentFilters.UserId.Value}");
+            
+            if (currentFilters.PromoId.HasValue)
+                queryParams.Add($"promoId={currentFilters.PromoId.Value}");
+            
+            if (!string.IsNullOrEmpty(currentFilters.Status))
+                queryParams.Add($"status={currentFilters.Status}");
+            
+            if (currentFilters.CategoryId.HasValue)
+                queryParams.Add($"categoryId={currentFilters.CategoryId.Value}");
+            
+            var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
+            var url = $"api/order{queryString}";
+            
+            var response = await Http.GetFromJsonAsync<List<OrderDto>>(url);
             if (response != null)
             {
                 // Map OrderDto sang OrderDisplayDto
-                allOrders = response.Select(o => new OrderDisplayDto
+                orders = response.Select(o => new OrderDisplayDto
                 {
                     OrderId = o.OrderId,
                     OrderDate = o.OrderDate,
@@ -130,11 +156,9 @@
                     TotalAmount = o.TotalAmount,
                     CustomerName = o.Customer?.Name ?? "Khách lẻ"
                 }).ToList();
-                orders = allOrders;
             }
             else
             {
-                allOrders = new List<OrderDisplayDto>();
                 orders = new List<OrderDisplayDto>();
             }
         }
@@ -149,7 +173,7 @@
     private async Task ViewOrder(OrderDisplayDto order)
     {
         // Tải chi tiết đơn hàng từ API
-        var fullOrder = await Http.GetFromJsonAsync<Order>($"api/order/{order.OrderId}");
+        var fullOrder = await Http.GetFromJsonAsync<OrderDetailViewModel>($"api/order/{order.OrderId}");
         if (fullOrder != null)
         {
             var parameters = new DialogParameters<OrderViewDialog>
@@ -203,7 +227,7 @@
             })}
         };
 
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
         await DialogService.ShowAsync<PaymentDialog>("Thanh toán đơn hàng", parameters, options);
     }
 
@@ -283,13 +307,6 @@
     
     private async Task ApplyFilters()
     {
-        orders = allOrders;
-        
-        if (!string.IsNullOrEmpty(currentFilters.Status))
-        {
-            orders = orders.Where(o => o.Status == currentFilters.Status).ToList();
-        }
-        
-        // Add more filter logic as needed
+        await LoadOrders();
     }
 }

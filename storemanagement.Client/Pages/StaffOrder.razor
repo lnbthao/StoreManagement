@@ -1,10 +1,247 @@
 ﻿@page "/staff/order"
 @layout StaffLayout
+@using StoreManagement.Shared.Models
+@using StoreManagement.Shared.Helpers
+@using StoreManagement.Shared.Enums
+@using StoreManagement.Shared.DTOs
+@using StoreManagement.Shared.ViewModels
+@using StoreManagement.Client.Services
+@using StoreManagement.Client.Pages.Order
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
 
 <PageTitle>Đơn hàng | Nhân viên</PageTitle>
 
-<MudText Typo="Typo.h4" Class="mb-4">Đơn hàng của tôi</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">ĐƠN HÀNG CỦA TÔI</MudText>
 
-<MudPaper Elevation="2" Class="pa-4">
-    <MudText>Trang này đang được phát triển...</MudText>
-</MudPaper>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12">
+            <MudTextField @bind-Value="searchText" Placeholder="Tìm mã đơn, khách hàng..."
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" DebounceInterval="300" Clearable="true" FullWidth="true" />
+        </MudItem>
+    </MudGrid>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+        <MudText Align="Align.Center" Class="my-5">Đang tải danh sách đơn hàng...</MudText>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="my-4"><strong>Lỗi:</strong> @errorMessage</MudAlert>
+    }
+    else
+    {
+        <MudPaper Elevation="2">
+            <MudTable Items="@filteredOrders" Hover="true" Striped="true" Dense="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Mã ĐH</MudTh>
+                    <MudTh>Khách hàng</MudTh>
+                    <MudTh Style="text-align:center">Ngày tạo</MudTh>
+                    <MudTh Style="text-align:right">Tổng tiền</MudTh>
+                    <MudTh Style="text-align:center">Trạng thái</MudTh>
+                    <MudTh Style="text-align:center">Hành động</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>#@context.OrderId</MudTd>
+                    <MudTd>@(context.CustomerName ?? "Khách lẻ")</MudTd>
+                    <MudTd Style="text-align:center">@FormatHelper.ToVNDate(context.OrderDate)</MudTd>
+                    <MudTd Style="text-align:right">@FormatHelper.ToVNPrice(context.TotalAmount)</MudTd>
+                    <MudTd Style="text-align:center">
+                        @{
+                            var statusEnum = OrderStatusExtensions.FromString(context.Status ?? "pending");
+                            var statusText = statusEnum.ToDisplayString();
+                            var statusColor = statusEnum switch
+                            {
+                                OrderStatus.Pending => Color.Warning,
+                                OrderStatus.Paid => Color.Success,
+                                OrderStatus.Canceled => Color.Error,
+                                _ => Color.Default
+                            };
+                        }
+                        <MudChip T="string" Color="@statusColor" Size="Size.Small">@statusText</MudChip>
+                    </MudTd>
+                    <MudTd Style="text-align:center">
+                        <MudTooltip Text="Xem chi tiết">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small"
+                                         OnClick="@(() => ViewOrder(context))" />
+                        </MudTooltip>
+                        @if (context.Status == "pending")
+                        {
+                            <MudTooltip Text="Thanh toán">
+                                <MudIconButton Icon="@Icons.Material.Filled.Payment" Color="Color.Success" Size="Size.Small"
+                                             OnClick="@(() => ProcessPayment(context))" />
+                            </MudTooltip>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+        <MudText Typo="Typo.body2" Class="mt-2">Tổng: <strong>@filteredOrders.Count()</strong> đơn hàng</MudText>
+    }
+</MudContainer>
+
+@code {
+    private List<OrderDisplayDto> orders = new();
+    private string searchText = "";
+    private bool isLoading = true;
+    private string errorMessage = "";
+    private int currentUserId = 0;
+
+    private IEnumerable<OrderDisplayDto> filteredOrders
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchText)) return orders;
+            var search = searchText.ToLower().Trim();
+            return orders.Where(o =>
+                o.OrderId.ToString().Contains(search) ||
+                (o.CustomerName?.ToLower().Contains(search) ?? false)
+            );
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get current user ID
+        var currentUser = await AuthService.GetCurrentUserAsync();
+        if (currentUser != null)
+        {
+            currentUserId = currentUser.UserId;
+            await LoadOrders();
+        }
+        else
+        {
+            errorMessage = "Không thể xác định người dùng hiện tại";
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadOrders()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = "";
+            
+            // Filter by current user ID
+            var url = $"api/order?userId={currentUserId}";
+            
+            var response = await Http.GetFromJsonAsync<List<OrderDto>>(url);
+            if (response != null)
+            {
+                // Map OrderDto to OrderDisplayDto
+                orders = response.Select(o => new OrderDisplayDto
+                {
+                    OrderId = o.OrderId,
+                    OrderDate = o.OrderDate,
+                    Status = o.Status,
+                    TotalAmount = o.TotalAmount,
+                    CustomerName = o.Customer?.Name ?? "Khách lẻ"
+                }).ToList();
+            }
+            else
+            {
+                orders = new List<OrderDisplayDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Không thể tải danh sách đơn hàng: {ex.Message}";
+            Snackbar.Add(errorMessage, Severity.Error);
+        }
+        finally { isLoading = false; }
+    }
+
+    private async Task ViewOrder(OrderDisplayDto order)
+    {
+        // Load full order details from API
+        var fullOrder = await Http.GetFromJsonAsync<OrderDetailViewModel>($"api/order/{order.OrderId}");
+        if (fullOrder != null)
+        {
+            var parameters = new DialogParameters<OrderViewDialog>
+            {
+                { x => x.Order, fullOrder }
+            };
+
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<OrderViewDialog>("Chi tiết đơn hàng", parameters, options);
+            var result = await dialog.Result;
+
+            // Reload if order was canceled in dialog
+            if (!result.Canceled && result.Data is bool canceled && canceled)
+            {
+                await LoadOrders();
+            }
+        }
+    }
+
+    private async Task ProcessPayment(OrderDisplayDto order)
+    {
+        var parameters = new DialogParameters<PaymentDialog>
+        {
+            { x => x.TotalAmount, order.TotalAmount },
+            { x => x.OrderId, order.OrderId },
+            { x => x.CustomerName, order.CustomerName },
+            { x => x.OnPaymentConfirmed, EventCallback.Factory.Create<string>(this, async (method) =>
+            {
+                await CompletePayment(order.OrderId, method);
+            })}
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<PaymentDialog>("Thanh toán đơn hàng", parameters, options);
+    }
+
+    private async Task CompletePayment(int orderId, string paymentMethod)
+    {
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"api/order/{orderId}/status", new { Status = "paid" });
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Thanh toán thành công!", Severity.Success);
+                await LoadOrders();
+            }
+            else
+            {
+                Snackbar.Add("Không thể cập nhật trạng thái đơn hàng", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+    
+    // DTO for table display
+    private class OrderDisplayDto
+    {
+        public int OrderId { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string Status { get; set; } = "";
+        public decimal TotalAmount { get; set; }
+        public string CustomerName { get; set; } = "";
+    }
+    
+    // DTO from API
+    private class OrderDto
+    {
+        public int OrderId { get; set; }
+        public DateTime OrderDate { get; set; }
+        public string Status { get; set; } = "";
+        public decimal TotalAmount { get; set; }
+        public IdNameDto? Customer { get; set; }
+    }
+    
+    private class IdNameDto
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+    }
+}

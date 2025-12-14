@@ -62,7 +62,7 @@
                 <MudPaper Elevation="0" Class="pa-3 mud-theme-primary">
                     <MudStack Row="true" Justify="Justify.SpaceBetween">
                         <MudText>Tiền thối lại:</MudText>
-                        <MudText Typo="Typo.h5" Color="Color.Error" Class="font-weight-bold">
+                        <MudText Typo="Typo.h5" Class="font-weight-bold">
                             @FormatHelper.ToVNPrice(cashReceived >= TotalAmount ? cashReceived - TotalAmount : 0)
                         </MudText>
                     </MudStack>
@@ -75,7 +75,7 @@
         <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
             <MudStack Row="true" Justify="Justify.SpaceBetween">
                 <MudText>Tổng tiền:</MudText>
-                <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">@FormatHelper.ToVNPrice(TotalAmount)</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Success" Class="font-weight-bold">@FormatHelper.ToVNPrice(TotalAmount)</MudText>
             </MudStack>
         </MudPaper>
     </DialogContent>
@@ -121,6 +121,7 @@
         selectedMethod = method;
         cashReceived = TotalAmount; // Default to exact amount
         cashError = "";
+        StateHasChanged();
     }
 
     private async Task ProcessPayment(string method)
@@ -198,6 +199,7 @@
         {
             selectedMethod = "";
             cashError = "";
+            StateHasChanged();
         }
         else
         {

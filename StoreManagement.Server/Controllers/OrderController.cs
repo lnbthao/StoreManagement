@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StoreManagement.Server.Models;
+using StoreManagement.Shared.ViewModels;
+using StoreManagement.Shared.DTOs;
 
 namespace StoreManagement.Server.Controllers
 {
@@ -17,9 +19,36 @@ namespace StoreManagement.Server.Controllers
 
         // GET: api/Order
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders()
+        public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] int? userId,
+            [FromQuery] int? promoId,
+            [FromQuery] string? status,
+            [FromQuery] int? categoryId)
         {
-            var result = await _context.Orders
+            var query = _context.Orders.AsQueryable();
+
+            // Apply filters
+            if (startDate.HasValue)
+                query = query.Where(o => o.OrderDate >= startDate.Value);
+            
+            if (endDate.HasValue)
+                query = query.Where(o => o.OrderDate <= endDate.Value.AddDays(1));
+            
+            if (userId.HasValue)
+                query = query.Where(o => o.UserId == userId.Value);
+            
+            if (promoId.HasValue)
+                query = query.Where(o => o.PromoId == promoId.Value);
+            
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(o => o.Status == status);
+            
+            if (categoryId.HasValue)
+                query = query.Where(o => o.OrderItems.Any(oi => oi.Product != null && oi.Product.CategoryId == categoryId.Value));
+
+            var result = await query
                 .OrderByDescending(o => o.OrderId)
                 .Select(o => new OrderDto
                 {
@@ -54,34 +83,32 @@ namespace StoreManagement.Server.Controllers
 
         // GET: api/Order/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<OrderDto>> GetOrder(int id)
+        public async Task<ActionResult<OrderDetailViewModel>> GetOrder(int id)
         {
             var order = await _context.Orders
                 .Where(o => o.OrderId == id)
-                .Select(o => new OrderDto
+                .Select(o => new OrderDetailViewModel
                 {
                     OrderId = o.OrderId,
                     OrderDate = o.OrderDate,
                     Status = o.Status ?? string.Empty,
-                    TotalAmount = o.TotalAmount ?? 0,
-                    DiscountAmount = o.DiscountAmount ?? 0,
-                    Customer = o.Customer == null
-                        ? null
-                        : new IdNameDto { Id = o.Customer.CustomerId, Name = o.Customer.CustomerName },
-                    User = o.User == null
-                        ? null
-                        : new IdNameDto { Id = o.User.UserId, Name = o.User.FullName },
-                    Promo = o.Promo == null
-                        ? null
-                        : new IdNameDto { Id = o.Promo.PromoId, Name = o.Promo.PromoCode },
-                    Items = o.OrderItems.Select(oi => new OrderItemDto
+                    TotalAmount = o.TotalAmount,
+                    DiscountAmount = o.DiscountAmount,
+                    CustomerId = o.CustomerId,
+                    CustomerName = o.Customer != null ? o.Customer.CustomerName : null,
+                    UserId = o.UserId,
+                    UserName = o.User != null ? o.User.FullName : null,
+                    PromoId = o.PromoId,
+                    PromoCode = o.Promo != null ? o.Promo.PromoCode : null,
+                    OrderItems = o.OrderItems.Select(oi => new OrderItemDetail
                     {
                         OrderItemId = oi.OrderItemId,
-                        ProductId = oi.ProductId ?? 0,
+                        ProductId = oi.ProductId,
                         ProductName = oi.Product != null ? oi.Product.ProductName : null,
                         Quantity = oi.Quantity,
-                        Price = oi.Price,
-                        Subtotal = oi.Subtotal
+                        UnitPrice = oi.Price,
+                        TotalPrice = oi.Subtotal,
+                        Unit = oi.Product != null ? oi.Product.Unit : null
                     }).ToList()
                 })
                 .FirstOrDefaultAsync();
@@ -188,7 +215,7 @@ namespace StoreManagement.Server.Controllers
                         // Check usage limit
                         var usedCount = promo.UsedCount ?? 0;
                         var usageLimit = promo.UsageLimit ?? 0;
-                        var hasUsageLeft = usageLimit == 0 || usedCount < usageLimit;
+                        var hasUsageLeft = usageLimit == -1 || usedCount < usageLimit;
                         
                         if (!isActive)
                         {

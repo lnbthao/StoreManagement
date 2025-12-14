@@ -1,4 +1,4 @@
-﻿@using StoreManagement.Shared.Models
+﻿@using StoreManagement.Shared.ViewModels
 @using StoreManagement.Shared.Helpers
 @inject HttpClient Http
 @inject ISnackbar Snackbar
@@ -59,7 +59,7 @@
                             <MudTd>@(context.ProductName ?? "—")</MudTd>
                             <MudTd Style="text-align:center">@context.Quantity</MudTd>
                             <MudTd Style="text-align:right">@FormatHelper.ToVNPrice(context.UnitPrice)</MudTd>
-                            <MudTd Style="text-align:right"><strong>@FormatHelper.ToVNPrice(context.UnitPrice * context.Quantity)</strong></MudTd>
+                            <MudTd Style="text-align:right"><strong>@FormatHelper.ToVNPrice(context.TotalPrice)</strong></MudTd>
                         </RowTemplate>
                         <NoRecordsContent>
                             <MudText Align="Align.Center" Class="py-3">Không có sản phẩm trong đơn hàng</MudText>
@@ -85,7 +85,7 @@
     MudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter]
-    public Order? Order { get; set; }
+    public OrderDetailViewModel? Order { get; set; }
 
     private bool isCancelling = false;
 

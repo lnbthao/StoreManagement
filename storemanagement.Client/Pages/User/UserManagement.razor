@@ -86,7 +86,6 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small"
                                          OnClick="@(() => Navigation.NavigateTo($"/admin/user/edit/{context.UserId}"))" />
                         </MudTooltip>
-<<<<<<< HEAD
                         @if (context.IsActive)
                         {
                             <MudTooltip Text="Xóa">
@@ -101,12 +100,6 @@
                                              OnClick="@(() => DeleteUser(context))" />
                             </MudTooltip>
                         }
-=======
-                        <MudTooltip Text="Xóa">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                         OnClick="@(() => DeleteUser(context))" />
-                        </MudTooltip>
->>>>>>> origin/Cuoiki-dev/thao
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -120,10 +113,7 @@
     private string searchText = "";
     private bool isLoading = true;
     private string errorMessage = "";
-<<<<<<< HEAD
     private UserFilterDto currentFilters = new() { Status = "active" };
-=======
->>>>>>> origin/Cuoiki-dev/thao
 
     private IEnumerable<User> filteredUsers
     {
@@ -146,7 +136,6 @@
         {
             isLoading = true;
             errorMessage = "";
-<<<<<<< HEAD
             
             // Build query string from filters
             var queryParams = new List<string>();
@@ -170,10 +159,6 @@
             // Client-side filter for inactive only
             if (currentFilters.Status == "inactive")
                 users = users.Where(u => !u.IsActive).ToList();
-=======
-            var response = await Http.GetFromJsonAsync<List<User>>("api/user");
-            users = response ?? new List<User>();
->>>>>>> origin/Cuoiki-dev/thao
         }
         catch (Exception ex)
         {
@@ -196,7 +181,6 @@
 
     private async Task OpenFilterDialog()
     {
-<<<<<<< HEAD
         var parameters = new DialogParameters<UserFilterDialog>
         {
             { x => x.CurrentFilters, currentFilters }
@@ -210,32 +194,16 @@
             currentFilters = filters;
             await LoadUsers();
             Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
-=======
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<UserFilterDialog>("Lọc người dùng", options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data != null)
-        {
-            Snackbar.Add("Đã áp dụng bộ lọc", Severity.Success);
-            // TODO: Apply filter logic
->>>>>>> origin/Cuoiki-dev/thao
         }
     }
 
     private async Task DeleteUser(User user)
     {
-<<<<<<< HEAD
         var action = user.IsActive ? "Khóa" : "Khôi phục";
         var result = await DialogService.ShowMessageBox(
             $"Xác nhận {action}",
             $"Bạn có chắc muốn {action} người dùng '{user.Username}'?",
             yesText: action, cancelText: "Hủy");
-=======
-        var result = await DialogService.ShowMessageBox("Xác nhận xóa",
-            $"Bạn có chắc muốn xóa người dùng '{user.Username}'?",
-            yesText: "Xóa", cancelText: "Hủy");
->>>>>>> origin/Cuoiki-dev/thao
 
         if (result == true)
         {
@@ -244,7 +212,6 @@
                 var response = await Http.DeleteAsync($"api/user/{user.UserId}");
                 if (response.IsSuccessStatusCode)
                 {
-<<<<<<< HEAD
                     Snackbar.Add($"Đã {action} người dùng '{user.Username}'", Severity.Success);
                     await LoadUsers();
                 }
@@ -253,18 +220,8 @@
                     var errorContent = await response.Content.ReadAsStringAsync();
                     Snackbar.Add($"Lỗi xóa: {(string.IsNullOrEmpty(errorContent) ? response.ReasonPhrase : errorContent)}", Severity.Error);
                 }
-=======
-                    Snackbar.Add($"Đã xóa người dùng '{user.Username}'", Severity.Success);
-                    await LoadUsers();
-                }
-                else { Snackbar.Add("Không thể xóa người dùng", Severity.Error); }
->>>>>>> origin/Cuoiki-dev/thao
             }
             catch (Exception ex) { Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error); }
         }
     }
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/Cuoiki-dev/thao

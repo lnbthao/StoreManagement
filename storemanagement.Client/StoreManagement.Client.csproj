@@ -2,10 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-<<<<<<< HEAD
     <RootNamespace>StoreManagement.Client</RootNamespace>
-=======
->>>>>>> origin/Cuoiki-dev/thao
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>

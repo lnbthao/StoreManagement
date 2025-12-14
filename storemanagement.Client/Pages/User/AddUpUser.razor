@@ -27,13 +27,9 @@
                                       Label="Tên đăng nhập"
                                       Required="true"
                                       RequiredError="Vui lòng nhập tên đăng nhập"
-<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       Immediate="true"
                                       Disabled="@Id.HasValue" />
-=======
-                                      Variant="Variant.Outlined" />
->>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12">
@@ -41,12 +37,8 @@
                                       Label="Họ tên"
                                       Required="true"
                                       RequiredError="Vui lòng nhập họ tên"
-<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       Immediate="true" />
-=======
-                                      Variant="Variant.Outlined" />
->>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12">
@@ -55,12 +47,8 @@
                                       InputType="InputType.Password"
                                       Required="@(!Id.HasValue)"
                                       RequiredError="Vui lòng nhập mật khẩu"
-<<<<<<< HEAD
                                       Variant="Variant.Outlined"
                                       Immediate="true" />
-=======
-                                      Variant="Variant.Outlined" />
->>>>>>> origin/Cuoiki-dev/thao
                     </MudItem>
 
                     <MudItem xs="12">
@@ -73,7 +61,6 @@
                         </MudSelect>
                     </MudItem>
 
-<<<<<<< HEAD
                     @if (Id.HasValue)
                     {
                         <MudItem xs="12">
@@ -82,13 +69,6 @@
                                        Label="Hoạt động" />
                         </MudItem>
                     }
-=======
-                    <MudItem xs="12">
-                        <MudSwitch @bind-Value="user.IsActive" 
-                                   Color="Color.Success"
-                                   Label="Hoạt động" />
-                    </MudItem>
->>>>>>> origin/Cuoiki-dev/thao
 
                     <MudItem xs="12" Class="d-flex gap-2 justify-end">
                         <MudButton Variant="Variant.Outlined"
@@ -162,16 +142,9 @@
         {
             isSaving = true;
             
-<<<<<<< HEAD
             if (!string.IsNullOrWhiteSpace(password))
             {
                 user.Password = password;
-=======
-            // If password is provided, hash it (in real app)
-            if (!string.IsNullOrWhiteSpace(password))
-            {
-                user.Password = password; // In production, hash this!
->>>>>>> origin/Cuoiki-dev/thao
             }
 
             HttpResponseMessage response;
@@ -189,7 +162,6 @@
                 Snackbar.Add(Id.HasValue ? "Cập nhật người dùng thành công" : "Thêm người dùng thành công", Severity.Success);
                 Navigation.NavigateTo("/admin/user");
             }
-<<<<<<< HEAD
             else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -203,9 +175,6 @@
                 catch { }
                 Snackbar.Add(errorMsg, Severity.Error);
             }
-=======
-            else { Snackbar.Add("Không thể lưu người dùng", Severity.Error); }
->>>>>>> origin/Cuoiki-dev/thao
         }
         catch (Exception ex) { Snackbar.Add($"Lỗi khi lưu: {ex.Message}", Severity.Error); }
         finally { isSaving = false; }

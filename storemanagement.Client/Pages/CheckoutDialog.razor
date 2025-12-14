@@ -65,6 +65,34 @@
                     </MudStack>
                 </MudRadio>
             </MudRadioGroup>
+
+            @if (paymentMethod == "cash")
+            {
+                <MudStack Spacing="3" Class="mt-4">
+                    <MudNumericField @bind-Value="cashReceived" 
+                                    Label="Số tiền khách đưa" 
+                                    Variant="Variant.Outlined"
+                                    Min="0"
+                                    Format="N0"
+                                    Culture="@(new System.Globalization.CultureInfo("vi-VN"))"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Filled.Payments"
+                                    Disabled="isProcessing"
+                                    Required="true"
+                                    RequiredError="Vui lòng nhập số tiền khách đưa"
+                                    HelperText="@cashError"
+                                    Error="@(!string.IsNullOrEmpty(cashError))" />
+
+                    <MudPaper Elevation="0" Class="pa-3 mud-theme-primary">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText>Tiền thối lại:</MudText>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">
+                                @FormatHelper.ToVNPrice(cashReceived >= TotalAmount ? cashReceived - TotalAmount : 0)
+                            </MudText>
+                        </MudStack>
+                    </MudPaper>
+                </MudStack>
+            }
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -92,6 +120,13 @@
     private string customerPhone = "";
     private string paymentMethod = "cash";
     private Customer? foundCustomer;
+    private decimal cashReceived = 0;
+    private string cashError = "";
+
+    protected override void OnInitialized()
+    {
+        cashReceived = TotalAmount; // Default to exact amount
+    }
 
     private string? ValidatePhone(string phone)
     {
@@ -127,6 +162,18 @@
     {
         await form.Validate();
         if (!isFormValid) return;
+
+        // Validate cash payment
+        if (paymentMethod == "cash")
+        {
+            cashError = "";
+            if (cashReceived < TotalAmount)
+            {
+                cashError = "Số tiền nhận phải lớn hơn hoặc bằng tổng cộng!";
+                Snackbar.Add(cashError, Severity.Error);
+                return;
+            }
+        }
 
         try
         {

@@ -28,16 +28,6 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="6">
-<<<<<<< HEAD
-                <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined" Placeholder="Tất cả">
-                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
-                    <MudSelectItem Value="@("active")">Đang hoạt động</MudSelectItem>
-                    <MudSelectItem Value="@("inactive")">Vô hiệu hóa</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" md="6">
-=======
->>>>>>> origin/Cuoiki-dev/thao
                 <MudDatePicker @bind-Date="createdFrom" Label="Từ ngày" Variant="Variant.Outlined" Clearable="true" />
             </MudItem>
             <MudItem xs="12" md="6">
@@ -70,10 +60,7 @@
             HasPhone = CurrentFilters.HasPhone ?? "",
             HasEmail = CurrentFilters.HasEmail ?? "",
             HasAddress = CurrentFilters.HasAddress ?? "",
-<<<<<<< HEAD
             Status = CurrentFilters.Status ?? "active",
-=======
->>>>>>> origin/Cuoiki-dev/thao
             CreatedFrom = CurrentFilters.CreatedFrom,
             CreatedTo = CurrentFilters.CreatedTo
         };
