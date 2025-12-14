@@ -40,11 +40,7 @@
                 <MudItem xs="12" md="4">
                     <MudText Typo="Typo.caption">Đơn tối thiểu</MudText>
                     <MudText>
-<<<<<<< HEAD
-                        @(Promotion.MinPurchase.HasValue && Promotion.MinPurchase > 0 ? FormatHelper.ToVNPrice(Promotion.MinPurchase.Value) : "Không yêu cầu")
-=======
                         @(Promotion.MinOrderAmount.HasValue && Promotion.MinOrderAmount > 0 ? FormatHelper.ToVNPrice(Promotion.MinOrderAmount.Value) : "Không yêu cầu")
->>>>>>> origin/Cuoiki-dev/thao
                     </MudText>
                 </MudItem>
 

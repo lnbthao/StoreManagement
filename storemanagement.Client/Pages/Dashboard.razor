@@ -2,7 +2,6 @@
 @page "/admin/dashboard"
 @using StoreManagement.Shared.ViewModels
 @inject HttpClient Http
-<<<<<<< HEAD
 @inject NavigationManager Nav
 
 <PageTitle>Dashboard | Quản lý kho hàng</PageTitle>
@@ -349,190 +348,13 @@
         await GetRevenue();
     }
 
-=======
-
-<PageTitle>Dashboard | Quản lý kho hàng</PageTitle>
-
-<MudText Typo="Typo.h4" Class="mb-4">Dashboard</MudText>
-
-@if (isLoading)
-{
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
-}
-else
-{
-    <MudGrid>
-        @* Revenue Statistics *@
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Doanh thu hôm nay</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Success">
-                        @FormatHelper.ToVNPrice(dashboard?.TodayRevenue ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Doanh thu tháng</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Primary">
-                        @FormatHelper.ToVNPrice(dashboard?.MonthRevenue ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Đơn hàng hôm nay</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Info">
-                        @(dashboard?.TodayOrders ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        <MudItem xs="12" sm="6" md="3">
-            <MudCard Elevation="2">
-                <MudCardContent>
-                    <MudText Typo="Typo.body2" Color="Color.Default">Sản phẩm sắp hết</MudText>
-                    <MudText Typo="Typo.h5" Color="Color.Warning">
-                        @(dashboard?.LowStockProducts ?? 0)
-                    </MudText>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        @* Recent Orders *@
-        <MudItem xs="12" md="8">
-            <MudCard Elevation="2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Đơn hàng gần đây</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudSimpleTable Dense="true" Hover="true">
-                        <thead>
-                            <tr>
-                                <th>Mã ĐH</th>
-                                <th>Khách hàng</th>
-                                <th>Tổng tiền</th>
-                                <th>Trạng thái</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (dashboard?.RecentOrders?.Any() == true)
-                            {
-                                @foreach (var order in dashboard.RecentOrders.Take(5))
-                                {
-                                    <tr>
-                                        <td>#@order.OrderId</td>
-                                        <td>@order.CustomerName</td>
-                                        <td>@FormatHelper.ToVNPrice(order.TotalAmount)</td>
-                                        <td>
-                                            <MudChip T="string" T="string" Size="Size.Small" Color="GetStatusColor(order.Status)">
-                                                @GetStatusText(order.Status)
-                                            </MudChip>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="4" class="text-center">Chưa có đơn hàng</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </MudSimpleTable>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-
-        @* Quick Stats *@
-        <MudItem xs="12" md="4">
-            <MudCard Elevation="2">
-                <MudCardHeader>
-                    <MudText Typo="Typo.h6">Thống kê nhanh</MudText>
-                </MudCardHeader>
-                <MudCardContent>
-                    <MudList T="string" Dense="true">
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.Inventory">
-                            <MudText>Tổng sản phẩm: <strong>@(dashboard?.TotalProducts ?? 0)</strong></MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.People">
-                            <MudText>Tổng khách hàng: <strong>@(dashboard?.TotalCustomers ?? 0)</strong></MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.LocalOffer">
-                            <MudText>Khuyến Mãi đang Chạy: <strong>@(dashboard?.ActivePromotions ?? 0)</strong></MudText>
-                        </MudListItem>
-                        <MudListItem T="string" Icon="@Icons.Material.Filled.ShoppingCart">
-                            <MudText>Đơn hàng tháng này: <strong>@(dashboard?.MonthOrders ?? 0)</strong></MudText>
-                        </MudListItem>
-                    </MudList>
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
-}
-
-@code {
-    private DashboardViewModel? dashboard;
-    private bool isLoading = true;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadDashboard();
-    }
-
-    private async Task LoadDashboard()
-    {
-        isLoading = true;
-        try
-        {
-            // TODO: Implement actual API call
-            // var response = await Http.GetAsync("/api/dashboard");
-            // dashboard = await response.Content.ReadFromJsonAsync<DashboardViewModel>();
-
-            // Mock data for now
-            dashboard = new DashboardViewModel
-            {
-                TodayRevenue = 5000000,
-                MonthRevenue = 150000000,
-                TodayOrders = 12,
-                MonthOrders = 350,
-                TotalProducts = 250,
-                LowStockProducts = 8,
-                TotalCustomers = 180,
-                ActivePromotions = 3,
-                RecentOrders = new List<RecentOrder>()
-            };
-        }
-        catch
-        {
-            // Handle error
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
->>>>>>> origin/Cuoiki-dev/thao
     private Color GetStatusColor(string status)
     {
         return status?.ToLower() switch
         {
             "pending" => Color.Warning,
             "paid" => Color.Success,
-<<<<<<< HEAD
             "canceled" => Color.Error,
-=======
-            "canceled" or "cancelled" => Color.Error,
->>>>>>> origin/Cuoiki-dev/thao
             _ => Color.Default
         };
     }
@@ -541,7 +363,6 @@ else
     {
         return status?.ToLower() switch
         {
-<<<<<<< HEAD
             "pending" => "Chờ xử lý",
             "paid" => "Đã thanh toán",
             "canceled" => "Đã hủy",
@@ -553,12 +374,4 @@ else
     {
         return value.Length <= maxChars ? value : value.Substring(0, maxChars) + "...";
     }
-=======
-            "pending" => "Chờ thanh toán",
-            "paid" => "Đã thanh toán",
-            "canceled" or "cancelled" => "Đã hủy",
-            _ => status ?? ""
-        };
-    }
->>>>>>> origin/Cuoiki-dev/thao
 }

@@ -29,8 +29,6 @@
         {
             <MudProgressLinear Indeterminate="true" />
         }
-<<<<<<< HEAD
-=======
         else if (displayProducts.Count == 0)
         {
             <MudText Style="text-align:center;">
@@ -39,7 +37,6 @@
         }
 
 
->>>>>>> origin/Cuoiki-dev/thao
         else
         {
             <MudGrid>
@@ -51,11 +48,7 @@
                             {
                                 <MudCardMedia Image="@($"https://localhost:7064{product.ImageUrl}")" 
                                              Height="150" 
-<<<<<<< HEAD
-                                             Style="object-fit: cover;" />
-=======
                                              Style="background-size: contain" />
->>>>>>> origin/Cuoiki-dev/thao
                             }
                             else
                             {
@@ -188,11 +181,7 @@
         {
             isLoadingProducts = true;
             allProducts = await Http.GetFromJsonAsync<List<ProductModel>>("api/product") ?? new();
-<<<<<<< HEAD
-            displayProducts = allProducts.Where(p => p.IsActive).Take(20).ToList();
-=======
             displayProducts = allProducts.Where(p => p.IsActive).ToList();
->>>>>>> origin/Cuoiki-dev/thao
         }
         catch (Exception ex)
         {
@@ -210,11 +199,7 @@
         
         if (string.IsNullOrWhiteSpace(searchProduct))
         {
-<<<<<<< HEAD
-            displayProducts = allProducts.Where(p => p.IsActive).Take(20).ToList();
-=======
             displayProducts = allProducts.Where(p => p.IsActive).ToList();
->>>>>>> origin/Cuoiki-dev/thao
         }
         else
         {
