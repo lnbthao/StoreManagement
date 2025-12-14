@@ -65,18 +65,21 @@ public class CategoryController : Controller
         return Ok(existing);
     }
 
+  
     [HttpDelete("{id}")]
     [Authorize(Roles = "admin")]
-    public async Task<IActionResult> DeleteCategory(int id)
+    public async Task<IActionResult> ToggleCategory(int id)
     {
         var existing = await _context.Categories.FindAsync(id);
         if (existing == null)
             return NotFound($"Category with ID {id} not found.");
 
-        existing.IsActive = false;
+        existing.IsActive = !existing.IsActive; // ✅ TOGGLE
         await _context.SaveChangesAsync();
+
         return Ok();
     }
+
 
     // PUT: api/Category/{id}/restore -> phục hồi
     [HttpPut("{id:int}/restore")]

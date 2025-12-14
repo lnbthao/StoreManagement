@@ -40,7 +40,7 @@
     else
     {
         <MudPaper Elevation="2">
-            <MudTable Items="@filteredCategories" Hover="true" Striped="true" Dense="true">
+            <MudTable T="Category" Items="@filteredCategories" Hover="true" Striped="true" Dense="true">
                 <HeaderContent>
                     <MudTh>Mã</MudTh>
                     <MudTh>Tên loại</MudTh>
@@ -51,7 +51,7 @@
                     <MudTd>@context.CategoryId</MudTd>
                     <MudTd>@context.CategoryName</MudTd>
                     <MudTd Style="text-align:center">
-                        <MudChip T="string" T="string" Size="Size.Small" Color="@(context.IsActive == true ? Color.Success : Color.Error)">
+                        <MudChip T="string" Size="Size.Small" Color="@(context.IsActive == true ? Color.Success : Color.Error)">
                             @(context.IsActive == true ? "Hoạt động" : "Ngừng")
                         </MudChip>
                     </MudTd>
@@ -60,10 +60,20 @@
                                      Color="Color.Primary" 
                                      Size="Size.Small"
                                      OnClick="@(() => Navigation.NavigateTo($"/admin/category/edit/{context.CategoryId}"))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                     Color="Color.Error" 
-                                     Size="Size.Small"
-                                     OnClick="@(() => HandleDelete(context))" />
+                        @if (context.IsActive)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(() => ToggleCategory(context))" />
+                        }
+                        else
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Restore"
+                                           Color="Color.Success"
+                                           Size="Size.Small"
+                                           OnClick="@(() => ToggleCategory(context))" />
+                        }
                     </MudTd>
                 </RowTemplate>
                 <NoRecordsContent>
@@ -105,29 +115,31 @@
         }
     }
 
-    private async Task HandleDelete(Category category)
+    private async Task ToggleCategory(Category category)
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            "Xác nhận xóa",
-            $"Bạn có chắc muốn xóa loại \"{category.CategoryName}\"?",
-            yesText: "Xóa",
+        var action = category.IsActive ? "Xóa" : "Khôi phục";
+
+        var result = await DialogService.ShowMessageBox(
+            $"Xác nhận {action}",
+            $"Bạn có chắc muốn {action.ToLower()} loại '{category.CategoryName}'?",
+            yesText: action,
             cancelText: "Hủy"
         );
 
-        if (confirmed == true)
+        if (result == true)
         {
-            try
+            var response = category.IsActive
+                ? await Http.DeleteAsync($"api/category/{category.CategoryId}")
+                : await Http.PutAsync($"api/category/{category.CategoryId}/restore", null);
+
+            if (response.IsSuccessStatusCode)
             {
-                var response = await Http.DeleteAsync($"/api/category/{category.CategoryId}");
-                if (response.IsSuccessStatusCode)
-                {
-                    Snackbar.Add("Xóa thành công!", Severity.Success);
-                    await LoadCategories();
-                }
+                Snackbar.Add($"Đã {action.ToLower()} loại '{category.CategoryName}'", Severity.Success);
+                await LoadCategories();
             }
-            catch
+            else
             {
-                Snackbar.Add("Xóa thất bại!", Severity.Error);
+                Snackbar.Add("Thao tác thất bại", Severity.Error);
             }
         }
     }

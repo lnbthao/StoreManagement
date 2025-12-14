@@ -113,7 +113,7 @@
                         {
                             <MudPaper Class="mt-3 pa-3" Elevation="0">
                                 <MudText Typo="Typo.caption" Class="mb-2">Xem trước:</MudText>
-                                <MudImage Src="@imagePreviewUrl" Alt="Preview" Style="max-height: 200px; max-width: 100%;" ObjectFit="ObjectFit.Contain" />
+                                <MudImage Src="@imagePreviewUrl" Alt="Preview" Style="max-height: 200px; max-width: 100%;" ObjectFit="ObjectFit.Contain" OnError="OnImageError" />
                             </MudPaper>
                         }
                     </MudItem>
@@ -163,11 +163,15 @@
     private List<Supplier> suppliers = new();
     private IBrowserFile? selectedImage;
     private string? imagePreviewUrl;
+
     // dùng cho MudSelect (object binding)
 private Category? selectedCategory;
 private Supplier? selectedSupplier;
 
-
+    private void OnImageError()
+    {
+        imagePreviewUrl = "/images/no-image.png";
+    }
     private void HandleFileSelected(IBrowserFile file)
     {
         selectedImage = file;
