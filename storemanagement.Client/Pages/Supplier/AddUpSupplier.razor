@@ -129,8 +129,8 @@
             return "Vui lòng nhập số điện thoại";
 
         // Bắt đầu bằng 09 và có tổng cộng 10 số
-        if (!System.Text.RegularExpressions.Regex.IsMatch(value, @"^09\d{8}$"))
-            return "Số điện thoại phải bắt đầu bằng 09 và gồm 10 số";
+        if (!System.Text.RegularExpressions.Regex.IsMatch(value,  @"^(0[1-9]\d{8}|02\d{9})$"))
+            return "Số điện thoại phải bắt đầu bằng 0x và gồm 10 số";
 
         return null;
     }

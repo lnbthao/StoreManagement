@@ -82,11 +82,11 @@ public class SupplierController : Controller
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteSupplier(int id)
     {
-        var existing = await _context.Suppliers.FindAsync(id);
-        if (existing == null)
-            return NotFound($"Supplier with ID {id} not found.");
+        var supplier = await _context.Suppliers.FindAsync(id);
+        if (supplier == null) return NotFound();
 
-        existing.IsActive = false;
+        supplier.IsActive = !supplier.IsActive; 
+
         await _context.SaveChangesAsync();
         return Ok();
     }

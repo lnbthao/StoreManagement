@@ -90,24 +90,39 @@
                     </MudTd>
                     <MudTd Style="text-align:center">
                         <MudTooltip Text="Xem">
-                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" 
-                                         Color="Color.Info" 
-                                         Size="Size.Small"
-                                         OnClick="@(() => OpenViewDialog(context))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                           Color="Color.Info"
+                                           Size="Size.Small"
+                                           OnClick="@(() => OpenViewDialog(context))" />
                         </MudTooltip>
+
                         <MudTooltip Text="Sửa">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" 
-                                         Color="Color.Primary" 
-                                         Size="Size.Small"
-                                         OnClick="@(() => Navigation.NavigateTo($"/admin/supplier/edit/{context.SupplierId}"))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => Navigation.NavigateTo($"/admin/supplier/edit/{context.SupplierId}"))" />
                         </MudTooltip>
-                        <MudTooltip Text="Xóa">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" 
-                                         Color="Color.Error" 
-                                         Size="Size.Small"
-                                         OnClick="@(() => DeleteSupplier(context))" />
-                        </MudTooltip>
+
+                        @if (context.IsActive)
+                        {
+                            <MudTooltip Text="Xóa">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ToggleSupplier(context))" />
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Khôi phục">
+                                <MudIconButton Icon="@Icons.Material.Filled.Restore"
+                                               Color="Color.Success"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ToggleSupplier(context))" />
+                            </MudTooltip>
+                        }
                     </MudTd>
+
                 </RowTemplate>
             </MudTable>
         </MudPaper>
@@ -211,13 +226,14 @@
                 suppliers = suppliers.Where(s => !s.IsActive).ToList();
         }
     }
-
-    private async Task DeleteSupplier(Supplier supplier)
+    private async Task ToggleSupplier(Supplier supplier)
     {
+        var action = supplier.IsActive ? "Xóa" : "Khôi phục";
+
         var result = await DialogService.ShowMessageBox(
-            "Xác nhận xóa",
-            $"Bạn có chắc muốn xóa nhà cung cấp '{supplier.SupplierName}'?",
-            yesText: "Xóa",
+            $"Xác nhận {action}",
+            $"Bạn có chắc muốn {action.ToLower()} nhà cung cấp '{supplier.SupplierName}'?",
+            yesText: action,
             cancelText: "Hủy"
         );
 
@@ -228,18 +244,19 @@
                 var response = await Http.DeleteAsync($"api/supplier/{supplier.SupplierId}");
                 if (response.IsSuccessStatusCode)
                 {
-                    Snackbar.Add($"Đã xóa nhà cung cấp '{supplier.SupplierName}'", Severity.Success);
+                    Snackbar.Add($"Đã {action.ToLower()} nhà cung cấp '{supplier.SupplierName}'", Severity.Success);
                     await LoadSuppliers();
                 }
                 else
                 {
-                    Snackbar.Add("Không thể xóa nhà cung cấp", Severity.Error);
+                    Snackbar.Add($"Không thể {action.ToLower()} nhà cung cấp", Severity.Error);
                 }
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Lỗi khi xóa: {ex.Message}", Severity.Error);
+                Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
             }
         }
     }
+
 }
