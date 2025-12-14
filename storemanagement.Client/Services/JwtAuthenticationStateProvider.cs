@@ -100,7 +100,7 @@ public class JwtAuthenticationStateProvider : AuthenticationStateProvider
                 claims.Add(new Claim(ClaimTypes.Role, roleClaim.Value));
             }
         }
-        catch
+        catch (Exception ex)
         {
             Console.WriteLine("Error parsing JWT token: " + ex.Message);   
         }

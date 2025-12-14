@@ -28,6 +28,13 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="filters.Status" Label="Trạng thái" Variant="Variant.Outlined" Placeholder="Tất cả">
+                    <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                    <MudSelectItem Value="@("active")">Đang hoạt động</MudSelectItem>
+                    <MudSelectItem Value="@("inactive")">Vô hiệu hóa</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
                 <MudDatePicker @bind-Date="createdFrom" Label="Từ ngày" Variant="Variant.Outlined" Clearable="true" />
             </MudItem>
             <MudItem xs="12" md="6">
