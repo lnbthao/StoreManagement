@@ -45,8 +45,9 @@ namespace StoreManagement.Server.Controllers
                     CategoryName = p.Category == null ? null : p.Category.CategoryName,
                     SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
                     p.ImageUrl,
-                    quantity = p.Inventories.Sum(i => i.Quantity) // ← ĐỔI TÊN TỪ Stock → quantity
+                    quantity = p.Inventories.Sum(i => i.Quantity)
                 })
+
                 .ToListAsync();
 
             return Ok(result);
@@ -71,6 +72,7 @@ namespace StoreManagement.Server.Controllers
                     p.IsActive,
                     p.CategoryId,
                     CategoryName = p.Category == null ? null : p.Category.CategoryName,
+                    p.SupplierId,
                     SupplierName = p.Supplier == null ? null : p.Supplier.SupplierName,
                     p.ImageUrl,
                     quantity = p.Inventories.Sum(i => i.Quantity) // ← ĐỔI TÊN TỪ Stock → quantity

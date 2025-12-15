@@ -49,7 +49,13 @@ export default function AddUpProduct({ status = false }) {
 
             try {
                 const sup = await axios.get("/api/supplier");
-                setSupplierList(sup.data);
+
+                const activeSuppliers = sup.data.filter(
+                    s => s.isActive === true
+                );
+
+                setSupplierList(activeSuppliers);
+
             } catch { }
 
             if (status && id) {
@@ -72,7 +78,7 @@ export default function AddUpProduct({ status = false }) {
                 productId: data.productId ?? Number(productId),
                 productName: data.productName ?? "",
                 categoryId: data.categoryId ?? -1,
-                supplierId: data.supplierId ?? -1,
+                supplierId: Number(data.supplierId ?? -1),
                 barcode: data.barcode ?? "",
                 price: data.price?.toString() ?? "",
                 unit: data.unit ?? "",
