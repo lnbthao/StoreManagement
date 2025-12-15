@@ -116,8 +116,16 @@ export default function ProductManagement() {
 
             await axios.put(endpoint);
 
-            // Cập nhật UI ngay lập tức
+            // CẬP NHẬT CẢ HAI LIST
             setProductList(prev =>
+                prev.map(item =>
+                    item.productId === p.productId
+                        ? { ...item, isActive: !item.isActive }
+                        : item
+                )
+            );
+
+            setOriginalList(prev =>
                 prev.map(item =>
                     item.productId === p.productId
                         ? { ...item, isActive: !item.isActive }
@@ -130,6 +138,7 @@ export default function ProductManagement() {
             alert("Lỗi: " + (err.response?.data?.message || "Không thể thực hiện"));
         }
     };
+
 
     // 2. NHẬP KHO
     const handleOpenInventory = (p) => {
